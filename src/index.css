@@ -1,0 +1,211 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+:root {
+  --bg-color: #010103;
+  --bg-darker: #000000;
+  --panel-bg: rgba(10, 10, 12, 0.45);
+  --panel-border: rgba(255, 255, 255, 0.08);
+  --panel-border-hover: rgba(255, 255, 255, 0.18);
+  --text-primary: rgba(255, 255, 255, 0.94);
+  --text-secondary: rgba(255, 255, 255, 0.55);
+  --accent-white: #ffffff;
+  --accent-gold: #cfa864;
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  user-select: none;
+}
+
+body {
+  background-color: var(--bg-color);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  overflow: hidden;
+  width: 100vw;
+  height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#root {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Subtle Vignette Overlay to frame the Earth */
+.space-vignette {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle at 50% 50%, transparent 20%, rgba(0, 0, 0, 0.9) 95%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Premium Apple-style frosted glass panel */
+.glass-panel {
+  background: var(--panel-bg);
+  backdrop-filter: blur(28px) saturate(120%);
+  -webkit-backdrop-filter: blur(28px) saturate(120%);
+  border: 1px solid var(--panel-border);
+  border-radius: 20px;
+  box-shadow: 
+    0 4px 30px rgba(0, 0, 0, 0.2), 
+    0 1px 0 rgba(255, 255, 255, 0.05) inset,
+    0 20px 50px rgba(0, 0, 0, 0.55);
+  transition: border-color 0.4s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.glass-panel:hover {
+  border-color: var(--panel-border-hover);
+  box-shadow: 
+    0 4px 30px rgba(0, 0, 0, 0.25), 
+    0 1px 0 rgba(255, 255, 255, 0.1) inset,
+    0 25px 60px rgba(0, 0, 0, 0.65);
+}
+
+/* 3D Spatial Tags floating next to globe coordinates */
+.spatial-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(10, 10, 12, 0.65);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 5px 12px;
+  border-radius: 30px;
+  color: var(--text-primary);
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+  pointer-events: auto;
+  cursor: pointer;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  transform: translate(-50%, -100%); /* Offset slightly above the node */
+}
+
+.spatial-label:hover {
+  background: rgba(255, 255, 255, 0.95);
+  color: #000000;
+  border-color: #ffffff;
+  box-shadow: 0 8px 25px rgba(255, 255, 255, 0.25);
+  transform: translate(-50%, -105%) scale(1.03);
+}
+
+/* Expanded Spatial Intelligence Card (flown-to country profiles in 3D) */
+.spatial-card {
+  width: 290px;
+  background: rgba(8, 8, 10, 0.82);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 16px;
+  padding: 18px;
+  color: var(--text-primary);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+  pointer-events: auto;
+  transform: translate(-50%, -115%); /* Float centered above the node */
+  animation: float-in 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+@keyframes float-in {
+  0% { opacity: 0; transform: translate(-50%, -105%) scale(0.95); }
+  100% { opacity: 1; transform: translate(-50%, -115%) scale(1.0); }
+}
+
+.spatial-card h3 {
+  font-size: 15px;
+  font-weight: 500;
+  color: #ffffff;
+  letter-spacing: 0.02em;
+}
+
+.spatial-card p {
+  font-size: 11px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  font-weight: 300;
+}
+
+.spatial-card-metric {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+}
+
+.spatial-card-metric-label {
+  color: var(--text-secondary);
+  text-transform: uppercase;
+}
+
+.spatial-card-metric-val {
+  font-weight: 500;
+  color: var(--accent-gold);
+}
+
+.subtle-line {
+  width: 100%;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* Custom minimal scrollbar */
+::-webkit-scrollbar {
+  width: 3px;
+  height: 3px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 1.5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.pulse-glow {
+  animation: pulse-opac 4s infinite alternate;
+}
+
+@keyframes pulse-opac {
+  0% { opacity: 0.4; }
+  100% { opacity: 0.95; }
+}
+
+.spatial-label-compact {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(10, 10, 12, 0.35);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  padding: 3px 8px;
+  border-radius: 20px;
+  color: var(--text-secondary);
+  font-size: 9px;
+  font-weight: 400;
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+  transform: translate(-50%, -100%);
+  transition: all 0.2s ease;
+}
