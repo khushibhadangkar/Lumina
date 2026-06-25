@@ -187,7 +187,7 @@ country_metrics,CA,hydrogen,12,45,6.2,20,1800,90,Vancouver fuel cell logistics p
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: 40 }}
       transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-      className="glass-panel"
+      className="glass-panel admin-panel"
       style={{
         position: "absolute",
         right: "32px",

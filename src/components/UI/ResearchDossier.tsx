@@ -34,7 +34,7 @@ export const ResearchDossier: React.FC<ResearchDossierProps> = ({ countryId, sea
   if (isLoading) {
     return (
       <div
-        className="glass-panel"
+        className="glass-panel dossier-panel"
         style={{
           position: "absolute",
           left: "32px",
@@ -66,7 +66,7 @@ export const ResearchDossier: React.FC<ResearchDossierProps> = ({ countryId, sea
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -40 }}
       transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-      className="glass-panel"
+      className="glass-panel dossier-panel"
       style={{
         position: "absolute",
         left: "32px",

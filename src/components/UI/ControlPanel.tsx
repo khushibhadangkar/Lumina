@@ -71,6 +71,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
 
   return (
     <motion.div
+      className="control-wrapper"
       initial={{ opacity: 0, y: 30 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1], delay: 0.4 }}
@@ -201,7 +202,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                   Compare Presets:
                 </span>
 
-                <div style={{ display: "flex", gap: "6px" }}>
+                <div className="compare-presets" style={{ display: "flex", gap: "6px" }}>
                   {COMPARISONS.map(item => {
                     const isPresetSelected = comparePreset === item.id;
                     return (
@@ -326,7 +327,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
 
           {/* 3. Main Control Deck Buttons Panel (Apple style capsule) */}
           <div
-            className="glass-panel"
+            className="glass-panel control-modes"
             style={{
               display: "flex",
               justifyContent: "space-between",

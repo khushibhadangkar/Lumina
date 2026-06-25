@@ -70,6 +70,7 @@ export const DocumentaryHUD: React.FC<DocumentaryHUDProps> = ({
 
   return (
     <motion.div
+      className="documentary-hud-wrapper"
       initial={{ opacity: 0, y: 40 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: 40 }}
@@ -144,7 +145,7 @@ export const DocumentaryHUD: React.FC<DocumentaryHUDProps> = ({
 
       {/* 2. Main Narrative & Subtitle Panel */}
       <div
-        className="glass-panel"
+        className="glass-panel documentary-hud-panel"
         style={{
           width: "100%",
           padding: "20px 28px",

@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # React + TypeScript + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
@@ -71,3 +72,7 @@ export default defineConfig([
   },
 ])
 ```
+=======
+# Lumina
+3D Interactive Globe Search Engine To Analyze Demand & Supply of Several Products Globally.
+>>>>>>> 9a84b7ccc82ba757804fe0c3f628a69caae407b4

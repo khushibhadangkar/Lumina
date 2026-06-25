@@ -294,6 +294,7 @@ export const App: React.FC = () => {
           >
             {/* Database Control Toggle Button */}
             <button
+              className="db-btn"
               onClick={() => setAdminPanelOpen(true)}
               style={{
                 position: "absolute",

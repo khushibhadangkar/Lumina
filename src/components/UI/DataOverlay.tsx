@@ -34,6 +34,14 @@ export const DataOverlay: React.FC<DataOverlayProps> = ({
   const [rotationVelocity, setRotationVelocity] = useState("465.1");
   const [axialTilt] = useState("23.44°");
   const [solarDist, setSolarDist] = useState("1.0167");
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 480);
+  const [telemetryExpanded, setTelemetryExpanded] = useState(false);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 480);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -50,6 +58,7 @@ export const DataOverlay: React.FC<DataOverlayProps> = ({
 
   return (
     <div
+      className="overlay-wrapper"
       style={{
         position: "absolute",
         top: 0,
@@ -66,9 +75,9 @@ export const DataOverlay: React.FC<DataOverlayProps> = ({
       }}
     >
       {/* ================= HEADER TELEMETRY BOARD ================= */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", pointerEvents: "auto" }}>
+      <div className="overlay-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", pointerEvents: "auto" }}>
         <div>
-          <h2 className="documentary-title" style={{ fontSize: "14px", letterSpacing: "0.18em", textTransform: "uppercase" }}>
+          <h2 className="documentary-title" style={{ fontSize: isMobile ? "12px" : "14px", letterSpacing: "0.18em", textTransform: "uppercase" }}>
             LUMINA // INTEL CORE
           </h2>
           <p style={{ fontSize: "9px", color: "var(--text-secondary)", letterSpacing: "0.05em", textTransform: "uppercase", marginTop: "4px" }}>
@@ -76,7 +85,7 @@ export const DataOverlay: React.FC<DataOverlayProps> = ({
           </p>
 
           {/* Floating Heatmap Selector (Horizontal pill list under header) */}
-          {!isCompare && (
+          {!isCompare && !isMobile && (
             <div style={{ display: "flex", gap: "6px", marginTop: "14px" }}>
               {["production", "demand", "growth", "exports", "imports", "opportunity"].map(mode => {
                 const isSelected = heatmapMode === mode;
@@ -106,39 +115,63 @@ export const DataOverlay: React.FC<DataOverlayProps> = ({
         </div>
 
         {/* Global physical parameters */}
-        <div 
-          style={{
-            display: "flex",
-            gap: "24px",
-            fontSize: "10px",
-            color: "var(--text-primary)",
-            background: "rgba(0, 0, 0, 0.25)",
-            backdropFilter: "blur(12px)",
-            border: "1px solid rgba(255,255,255,0.04)",
-            padding: "8px 18px",
-            borderRadius: "30px",
-            fontWeight: 300,
-          }}
-        >
-          <div>
-            <span style={{ color: "var(--text-secondary)" }}>ROTATION: </span>
-            <span>{rotationVelocity} m/s</span>
-          </div>
-          <div>
-            <span style={{ color: "var(--text-secondary)" }}>AXIAL TILT: </span>
-            <span>{axialTilt}</span>
-          </div>
-          <div>
-            <span style={{ color: "var(--text-secondary)" }}>SOLAR DIST: </span>
-            <span>{solarDist} AU</span>
-          </div>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "8px" }}>
+          {isMobile && (
+            <button
+              onClick={() => setTelemetryExpanded(!telemetryExpanded)}
+              style={{
+                background: "rgba(0, 0, 0, 0.35)",
+                border: "1px solid rgba(255, 255, 255, 0.08)",
+                color: "var(--text-secondary)",
+                fontSize: "9px",
+                padding: "4px 10px",
+                borderRadius: "12px",
+                cursor: "pointer",
+                textTransform: "uppercase",
+                backdropFilter: "blur(4px)"
+              }}
+            >
+              {telemetryExpanded ? "Hide Telemetry -" : "Telemetry +"}
+            </button>
+          )}
+
+          {(!isMobile || telemetryExpanded) && (
+            <div 
+              className="overlay-telemetry"
+              style={{
+                display: "flex",
+                gap: "24px",
+                fontSize: "10px",
+                color: "var(--text-primary)",
+                background: "rgba(0, 0, 0, 0.25)",
+                backdropFilter: "blur(12px)",
+                border: "1px solid rgba(255,255,255,0.04)",
+                padding: "8px 18px",
+                borderRadius: "30px",
+                fontWeight: 300,
+              }}
+            >
+              <div>
+                <span style={{ color: "var(--text-secondary)" }}>ROTATION: </span>
+                <span>{rotationVelocity} m/s</span>
+              </div>
+              <div>
+                <span style={{ color: "var(--text-secondary)" }}>AXIAL TILT: </span>
+                <span>{axialTilt}</span>
+              </div>
+              <div>
+                <span style={{ color: "var(--text-secondary)" }}>SOLAR DIST: </span>
+                <span>{solarDist} AU</span>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
       {/* ================= COMPACT FLOATING COMPARE SUMMARY ================= */}
       {isCompare && (
         <div 
-          className="glass-panel" 
+          className="glass-panel compare-summary" 
           style={{
             position: "absolute",
             left: "32px",
@@ -179,7 +212,7 @@ export const DataOverlay: React.FC<DataOverlayProps> = ({
       )}
 
       {/* ================= BOTTOM CONSOLE STATUS BAR ================= */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", fontSize: "9px", color: "var(--text-secondary)", pointerEvents: "auto" }}>
+      <div className="overlay-footer" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", fontSize: "9px", color: "var(--text-secondary)", pointerEvents: "auto" }}>
         <span>LUMINA GLOBAL INTELLIGENCE DECK // COMPLY WGS-84</span>
         
         <AnimatePresence>

@@ -267,6 +267,7 @@ export const GlobeScene: React.FC<GlobeSceneProps> = ({
 
   // Determine active visual styles based on current visual mode (Split/Future vs Satellite Day)
   const isHolographic = activeMode === "split" || activeMode === "future";
+  const isMobile = dimensions.width <= 480;
   const globeImage = isHolographic
     ? null
     : "https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg";
@@ -701,6 +702,7 @@ export const GlobeScene: React.FC<GlobeSceneProps> = ({
   if (activeMode === "compare") {
     return (
       <div 
+        className="globe-container"
         style={{
           display: "flex",
           width: "100%",
@@ -742,8 +744,8 @@ export const GlobeScene: React.FC<GlobeSceneProps> = ({
             backgroundColor="rgba(0,0,0,0)"
             globeImageUrl={globeImage || undefined}
             globeMaterial={customGlobeMaterial}
-            bumpImageUrl="https://unpkg.com/three-globe/example/img/earth-topology.png"
-            showAtmosphere={true}
+            bumpImageUrl={isHolographic || isMobile ? undefined : "https://unpkg.com/three-globe/example/img/earth-topology.png"}
+            showAtmosphere={!isMobile}
             atmosphereColor={atmosphereColor}
             atmosphereAltitude={0.15}
             
@@ -809,8 +811,8 @@ export const GlobeScene: React.FC<GlobeSceneProps> = ({
             backgroundColor="rgba(0,0,0,0)"
             globeImageUrl={globeImage || undefined}
             globeMaterial={customGlobeMaterial}
-            bumpImageUrl="https://unpkg.com/three-globe/example/img/earth-topology.png"
-            showAtmosphere={true}
+            bumpImageUrl={isHolographic || isMobile ? undefined : "https://unpkg.com/three-globe/example/img/earth-topology.png"}
+            showAtmosphere={!isMobile}
             atmosphereColor={atmosphereColor}
             atmosphereAltitude={0.15}
             
@@ -852,6 +854,7 @@ export const GlobeScene: React.FC<GlobeSceneProps> = ({
   // 2. SINGLE INTERACTIVE WEBGL GLOBE (Standard, Network, Split, and Future modes)
   return (
     <div 
+      className="globe-container"
       style={{
         position: "absolute",
         top: 0,
@@ -869,8 +872,8 @@ export const GlobeScene: React.FC<GlobeSceneProps> = ({
         backgroundColor="rgba(0,0,0,0)"
         globeImageUrl={globeImage || undefined}
         globeMaterial={customGlobeMaterial}
-        bumpImageUrl={isHolographic ? undefined : "https://unpkg.com/three-globe/example/img/earth-topology.png"}
-        showAtmosphere={true}
+        bumpImageUrl={isHolographic || isMobile ? undefined : "https://unpkg.com/three-globe/example/img/earth-topology.png"}
+        showAtmosphere={!isMobile}
         atmosphereColor={atmosphereColor}
         atmosphereAltitude={isHolographic ? 0.2 : 0.14}
         
