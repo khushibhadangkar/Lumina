@@ -197,8 +197,8 @@ export const DocumentaryHUD: React.FC<DocumentaryHUDProps> = ({
       }}
     >
       <div style={{
-        width: "92%",
-        maxWidth: "1100px",
+        width: "88%",
+        maxWidth: "800px",
         display: "flex",
         flexDirection: "column",
         gap: "12px",
