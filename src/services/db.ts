@@ -129,7 +129,46 @@ const SEED_METRICS: CountryMetric[] = [
   // Solar
   { country_id: "CN", topic_id: "solar", production_score: 180.0, demand_score: 85, growth_score: 24.0, export_score: 4200, import_score: 0, opportunity_score: 78, summary: "Gansu Solar Grid (China): Large desert grid installations producing clean energy alongside panel manufacture." },
   { country_id: "US", topic_id: "solar", production_score: 48.0, demand_score: 92, growth_score: 18.0, export_score: 0, import_score: 2200, opportunity_score: 85, summary: "California Desert (USA): High solar density panels drawing utility-scale import agreements." },
-  { country_id: "IN", topic_id: "solar", production_score: 36.0, demand_score: 75, growth_score: 32.0, export_score: 10, import_score: 1800, opportunity_score: 92, summary: "Bhadla Park (India): Largest single-site facility expanding at 32% annually." }
+  { country_id: "IN", topic_id: "solar", production_score: 36.0, demand_score: 75, growth_score: 32.0, export_score: 10, import_score: 1800, opportunity_score: 92, summary: "Bhadla Park (India): Largest single-site facility expanding at 32% annually." },
+
+  // Wind
+  { country_id: "GB", topic_id: "wind", production_score: 28.0, demand_score: 90, growth_score: 14.5, export_score: 120, import_score: 3400, opportunity_score: 85, summary: "Dogger Bank (UK): World's largest offshore wind farm under development, pushing massive domestic supply." },
+  { country_id: "CN", topic_id: "wind", production_score: 310.0, demand_score: 85, growth_score: 18.0, export_score: 5200, import_score: 0, opportunity_score: 80, summary: "Gansu Wind Farm (China): Massive onshore installations and dominant turbine manufacturing exporter." },
+  { country_id: "DE", topic_id: "wind", production_score: 65.0, demand_score: 88, growth_score: 6.2, export_score: 1800, import_score: 450, opportunity_score: 75, summary: "North Sea Grid (Germany): Established wind infrastructure transitioning to next-generation offshore." },
+  { country_id: "US", topic_id: "wind", production_score: 140.0, demand_score: 92, growth_score: 11.5, export_score: 400, import_score: 1200, opportunity_score: 88, summary: "Texas Wind Corridor (USA): Leads US onshore production with rapid grid integrations." },
+
+  // Software Engineers
+  { country_id: "US", topic_id: "software-engineers", production_score: 420.0, demand_score: 98, growth_score: 8.5, export_score: 0, import_score: 12500, opportunity_score: 92, summary: "Silicon Valley (USA): Highest concentration of software engineering talent globally, driving immense domestic demand." },
+  { country_id: "IN", topic_id: "software-engineers", production_score: 580.0, demand_score: 65, growth_score: 14.2, export_score: 38000, import_score: 0, opportunity_score: 95, summary: "Bangalore (India): Primary global exporter of software development services and engineering talent." },
+  { country_id: "IE", topic_id: "software-engineers", production_score: 45.0, demand_score: 85, growth_score: 12.0, export_score: 500, import_score: 2100, opportunity_score: 82, summary: "Dublin Hub (Ireland): European headquarters for major tech firms, importing regional talent." },
+  { country_id: "GB", topic_id: "software-engineers", production_score: 110.0, demand_score: 88, growth_score: 6.4, export_score: 800, import_score: 1500, opportunity_score: 78, summary: "London (UK): Top European ecosystem for fintech software engineering." },
+
+  // Robotics
+  { country_id: "JP", topic_id: "robotics", production_score: 185.0, demand_score: 75, growth_score: 8.4, export_score: 14200, import_score: 120, opportunity_score: 70, summary: "Yaskawa/Fanuc (Japan): Global leader in industrial robotics manufacturing and exports." },
+  { country_id: "DE", topic_id: "robotics", production_score: 95.0, demand_score: 82, growth_score: 6.5, export_score: 8500, import_score: 2100, opportunity_score: 65, summary: "KUKA Hub (Germany): Advanced industrial automation driving European automotive manufacturing." },
+  { country_id: "CN", topic_id: "robotics", production_score: 120.0, demand_score: 98, growth_score: 22.5, export_score: 3400, import_score: 15800, opportunity_score: 88, summary: "Shenzhen (China): Rapid domestic adoption and growing production of consumer and industrial robots." },
+  { country_id: "KR", topic_id: "robotics", production_score: 85.0, demand_score: 92, growth_score: 12.0, export_score: 4200, import_score: 1800, opportunity_score: 75, summary: "Seoul (South Korea): Highest robot density per manufacturing worker globally." },
+  { country_id: "US", topic_id: "robotics", production_score: 65.0, demand_score: 95, growth_score: 18.2, export_score: 2100, import_score: 6800, opportunity_score: 90, summary: "Boston Robotics (USA): Innovation leader in advanced dynamic and AI-driven robotics." },
+
+  // Startups
+  { country_id: "US", topic_id: "startups", production_score: 350.0, demand_score: 98, growth_score: 12.5, export_score: 45000, import_score: 0, opportunity_score: 95, summary: "Silicon Valley / NY (USA): Dominant global startup ecosystem with highest unicorn density and VC volume." },
+  { country_id: "CN", topic_id: "startups", production_score: 180.0, demand_score: 85, growth_score: 15.0, export_score: 12000, import_score: 0, opportunity_score: 82, summary: "Beijing/Shenzhen (China): Massive domestic market driving rapid scaling of tech startups." },
+  { country_id: "GB", topic_id: "startups", production_score: 85.0, demand_score: 80, growth_score: 10.5, export_score: 8500, import_score: 2400, opportunity_score: 85, summary: "London (UK): Leading European fintech and AI startup ecosystem." },
+  { country_id: "SG", topic_id: "startups", production_score: 45.0, demand_score: 75, growth_score: 18.0, export_score: 4200, import_score: 1800, opportunity_score: 88, summary: "Singapore Hub (SG): Primary launchpad and funding center for Southeast Asian startups." },
+  { country_id: "IN", topic_id: "startups", production_score: 110.0, demand_score: 88, growth_score: 24.5, export_score: 6800, import_score: 0, opportunity_score: 92, summary: "Bangalore (India): Fastest growing major startup ecosystem with surging SaaS and edtech sectors." },
+
+  // Data Centers
+  { country_id: "US", topic_id: "data-centers", production_score: 420.0, demand_score: 98, growth_score: 18.5, export_score: 12000, import_score: 5400, opportunity_score: 95, summary: "Ashburn VA (USA): 'Data Center Alley' handling massive global internet traffic and cloud infrastructure." },
+  { country_id: "IE", topic_id: "data-centers", production_score: 85.0, demand_score: 82, growth_score: 15.0, export_score: 4500, import_score: 1200, opportunity_score: 78, summary: "Dublin (Ireland): European hyperscale hub drawn by climate and tech policies." },
+  { country_id: "SG", topic_id: "data-centers", production_score: 55.0, demand_score: 90, growth_score: 12.5, export_score: 3200, import_score: 800, opportunity_score: 82, summary: "APAC Hub (Singapore): High-density data center infrastructure serving Southeast Asia." },
+  { country_id: "AU", topic_id: "data-centers", production_score: 45.0, demand_score: 75, growth_score: 14.0, export_score: 1800, import_score: 600, opportunity_score: 80, summary: "Sydney (Australia): Growing regional cloud hub powered by renewable energy transitions." },
+
+  // Trade Routes
+  { country_id: "CN", topic_id: "trade-routes", production_score: 450.0, demand_score: 95, growth_score: 8.5, export_score: 280000, import_score: 180000, opportunity_score: 88, summary: "Shanghai/Ningbo (China): World's busiest container ports driving global maritime exports." },
+  { country_id: "SG", topic_id: "trade-routes", production_score: 380.0, demand_score: 90, growth_score: 6.2, export_score: 150000, import_score: 145000, opportunity_score: 85, summary: "Port of Singapore (SG): Critical global transshipment hub connecting East and West." },
+  { country_id: "US", topic_id: "trade-routes", production_score: 210.0, demand_score: 98, growth_score: 5.5, export_score: 85000, import_score: 240000, opportunity_score: 82, summary: "LA/Long Beach (USA): Primary entry point for trans-Pacific maritime imports." },
+  { country_id: "PA", topic_id: "trade-routes", production_score: 150.0, demand_score: 85, growth_score: 4.8, export_score: 12000, import_score: 10000, opportunity_score: 75, summary: "Panama Canal (Panama): Strategic maritime chokepoint connecting Atlantic and Pacific oceans." },
+  { country_id: "EG", topic_id: "trade-routes", production_score: 140.0, demand_score: 88, growth_score: 5.2, export_score: 8000, import_score: 12000, opportunity_score: 78, summary: "Suez Canal (Egypt): Crucial shortcut for Europe-Asia maritime trade routes." }
 ];
 
 const SEED_ROUTES: TradeRoute[] = [
@@ -158,7 +197,38 @@ const SEED_ROUTES: TradeRoute[] = [
 
   // Solar
   { id: "route-so-1", source_country: "CN", destination_country: "US", volume: "12 GW Panels", topic_id: "solar" },
-  { id: "route-so-2", source_country: "CN", destination_country: "IN", volume: "8 GW Panels", topic_id: "solar" }
+  { id: "route-so-2", source_country: "CN", destination_country: "IN", volume: "8 GW Panels", topic_id: "solar" },
+
+  // Wind
+  { id: "route-wi-1", source_country: "CN", destination_country: "DE", volume: "2.4 GW Turbines", topic_id: "wind" },
+  { id: "route-wi-2", source_country: "CN", destination_country: "US", volume: "1.8 GW Parts", topic_id: "wind" },
+  { id: "route-wi-3", source_country: "DE", destination_country: "GB", volume: "1.2 GW Components", topic_id: "wind" },
+
+  // Software Engineers
+  { id: "route-se-1", source_country: "IN", destination_country: "US", volume: "Outsourcing & Migration", topic_id: "software-engineers" },
+  { id: "route-se-2", source_country: "IN", destination_country: "GB", volume: "Talent Pipeline", topic_id: "software-engineers" },
+  { id: "route-se-3", source_country: "IE", destination_country: "US", volume: "Corporate Integration", topic_id: "software-engineers" },
+
+  // Robotics
+  { id: "route-ro-1", source_country: "JP", destination_country: "CN", volume: "45k Industrial Units", topic_id: "robotics" },
+  { id: "route-ro-2", source_country: "DE", destination_country: "US", volume: "18k Auto-Robots", topic_id: "robotics" },
+  { id: "route-ro-3", source_country: "KR", destination_country: "CN", volume: "12k Logic Units", topic_id: "robotics" },
+
+  // Startups
+  { id: "route-st-1", source_country: "US", destination_country: "GB", volume: "$8.5B VC Flow", topic_id: "startups" },
+  { id: "route-st-2", source_country: "US", destination_country: "IN", volume: "$12.4B VC Flow", topic_id: "startups" },
+  { id: "route-st-3", source_country: "SG", destination_country: "IN", volume: "$4.2B Capital Route", topic_id: "startups" },
+
+  // Data Centers
+  { id: "route-dc-1", source_country: "TW", destination_country: "US", volume: "Servers & Hardware", topic_id: "data-centers" },
+  { id: "route-dc-2", source_country: "US", destination_country: "IE", volume: "Cloud Expansion", topic_id: "data-centers" },
+  { id: "route-dc-3", source_country: "CN", destination_country: "SG", volume: "APAC Infrastructure", topic_id: "data-centers" },
+
+  // Trade Routes
+  { id: "route-tr-1", source_country: "CN", destination_country: "US", volume: "Trans-Pacific Route", topic_id: "trade-routes" },
+  { id: "route-tr-2", source_country: "CN", destination_country: "SG", volume: "South China Sea Route", topic_id: "trade-routes" },
+  { id: "route-tr-3", source_country: "SG", destination_country: "EG", volume: "Indian Ocean Route", topic_id: "trade-routes" },
+  { id: "route-tr-4", source_country: "EG", destination_country: "DE", volume: "Mediterranean Route", topic_id: "trade-routes" }
 ];
 
 const SEED_INSIGHTS: CountryInsight[] = [
@@ -171,7 +241,31 @@ const SEED_INSIGHTS: CountryInsight[] = [
   { id: "ins-cf-1", country_id: "BR", topic_id: "coffee", insight: "Brazil controls 38% of global coffee production, serving as the system's baseline supply anchor." },
   { id: "ins-cf-2", country_id: "VN", topic_id: "coffee", insight: "Vietnam leads Robusta exports, exhibiting the fastest production growth of 5.2% annually." },
   { id: "ins-cf-3", country_id: "DE", topic_id: "coffee", insight: "Germany acts as a massive re-export gateway, importing more green beans than it produces, processing and routing to central Europe." },
-  { id: "ins-cf-4", country_id: "IN", topic_id: "coffee", insight: "India shows the highest demand surge, driven by urban cafe networks expanding at 8.4% yearly." }
+  { id: "ins-cf-4", country_id: "IN", topic_id: "coffee", insight: "India shows the highest demand surge, driven by urban cafe networks expanding at 8.4% yearly." },
+
+  // Wind
+  { id: "ins-wi-1", country_id: "CN", topic_id: "wind", insight: "China dominates wind turbine manufacturing and onshore installations." },
+  { id: "ins-wi-2", country_id: "GB", topic_id: "wind", insight: "The UK is heavily investing in North Sea offshore wind infrastructure." },
+
+  // Software Engineers
+  { id: "ins-se-1", country_id: "US", topic_id: "software-engineers", insight: "Silicon Valley remains the global center for high-value software engineering." },
+  { id: "ins-se-2", country_id: "IN", topic_id: "software-engineers", insight: "India provides the largest volume of software development talent globally." },
+
+  // Robotics
+  { id: "ins-ro-1", country_id: "JP", topic_id: "robotics", insight: "Japan leads the world in industrial robotics exports, supplying global manufacturing." },
+  { id: "ins-ro-2", country_id: "KR", topic_id: "robotics", insight: "South Korea maintains the highest robot density in its manufacturing sector." },
+
+  // Startups
+  { id: "ins-st-1", country_id: "US", topic_id: "startups", insight: "US VC capital heavily funds both domestic startups and international expansion." },
+  { id: "ins-st-2", country_id: "IN", topic_id: "startups", insight: "India's startup ecosystem is rapidly expanding, producing numerous tech unicorns." },
+
+  // Data Centers
+  { id: "ins-dc-1", country_id: "US", topic_id: "data-centers", insight: "Virginia's Data Center Alley is the central node for global internet traffic." },
+  { id: "ins-dc-2", country_id: "IE", topic_id: "data-centers", insight: "Dublin serves as the hyperscale cloud gateway for the European Union." },
+
+  // Trade Routes
+  { id: "ins-tr-1", country_id: "SG", topic_id: "trade-routes", insight: "Singapore acts as the critical transshipment nexus between Asian and European markets." },
+  { id: "ins-tr-2", country_id: "PA", topic_id: "trade-routes", insight: "The Panama Canal remains a vital chokepoint for global maritime logistics." }
 ];
 
 const SEED_RELATED: RelatedTopic[] = [
