@@ -270,7 +270,7 @@ export const GlobeScene: React.FC<GlobeSceneProps> = ({
   const isMobile = dimensions.width <= 480;
   const globeImage = "https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg";
   const atmosphereColor = "#3b82f6";
-  const shouldAutoRotate = !selectedHotspot && !selectedCountryId && activeMode !== "split" && (!activeScene || activeScene.zoom >= 5.0);
+  const shouldAutoRotate = (!selectedHotspot && !selectedCountryId && activeMode !== "split") || !!activeScene;
 
   // Configure OrbitControls auto-rotation, boundaries, and dynamic zoom tracking
   useEffect(() => {
@@ -284,7 +284,7 @@ export const GlobeScene: React.FC<GlobeSceneProps> = ({
         controls.minDistance = 130;
         controls.maxDistance = 500;
         controls.autoRotate = shouldAutoRotate;
-        controls.autoRotateSpeed = 0.5;
+        controls.autoRotateSpeed = activeScene ? 0.15 : 0.5;
         
         // Premium Apple-level inertia/damping
         controls.enableDamping = true;
@@ -322,7 +322,7 @@ export const GlobeScene: React.FC<GlobeSceneProps> = ({
     return () => {
       cleanups.forEach(fn => fn());
     };
-  }, [shouldAutoRotate, activeMode, countriesGeoJson]);
+  }, [shouldAutoRotate, activeMode, countriesGeoJson, activeScene]);
 
   // Handle smooth fly-to camera positioning when active hotspot, scene, or country changes
   useEffect(() => {
