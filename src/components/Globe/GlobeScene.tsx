@@ -268,10 +268,8 @@ export const GlobeScene: React.FC<GlobeSceneProps> = ({
   // Determine active visual styles based on current visual mode (Split/Future vs Satellite Day)
   const isHolographic = activeMode === "split" || activeMode === "future";
   const isMobile = dimensions.width <= 480;
-  const globeImage = isHolographic
-    ? null
-    : "https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg";
-  const atmosphereColor = isHolographic ? "#00f0ff" : "#3b82f6";
+  const globeImage = "https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg";
+  const atmosphereColor = "#3b82f6";
   const shouldAutoRotate = !selectedHotspot && !selectedCountryId && activeMode !== "split" && (!activeScene || activeScene.zoom >= 5.0);
 
   // Configure OrbitControls auto-rotation, boundaries, and dynamic zoom tracking
@@ -375,23 +373,14 @@ export const GlobeScene: React.FC<GlobeSceneProps> = ({
     }
   }, [activeScene, selectedCountryId, selectedHotspot, activeMode, countriesGeoJson]);
 
-  // Globe surface custom material to simulate high-end holographic effect vs realistic PBR reflectivity
+  // Globe surface custom material to simulate realistic PBR reflectivity
   const customGlobeMaterial = useMemo(() => {
-    if (isHolographic) {
-      return new THREE.MeshPhongMaterial({
-        color: new THREE.Color("#002447"),
-        transparent: true,
-        opacity: 0.35,
-        shininess: 10,
-        wireframe: false
-      });
-    }
     return new THREE.MeshPhongMaterial({
       color: new THREE.Color("#08152e"),
       shininess: 75,
       specular: new THREE.Color("#111111")
     });
-  }, [isHolographic]);
+  }, []);
 
   // Get dynamic polygon fill color mapped to specific viz metrics (HSL gradients)
   const getCountryColorForModeInList = (hotspot: HotspotData, mode: string, max: number) => {
@@ -744,10 +733,10 @@ export const GlobeScene: React.FC<GlobeSceneProps> = ({
             backgroundColor="rgba(0,0,0,0)"
             globeImageUrl={globeImage || undefined}
             globeMaterial={customGlobeMaterial}
-            bumpImageUrl={isHolographic || isMobile ? undefined : "https://unpkg.com/three-globe/example/img/earth-topology.png"}
-            showAtmosphere={!isMobile}
-            atmosphereColor={atmosphereColor}
-            atmosphereAltitude={0.15}
+        bumpImageUrl={isMobile ? undefined : "https://unpkg.com/three-globe/example/img/earth-topology.png"}
+        showAtmosphere={!isMobile}
+        atmosphereColor={atmosphereColor}
+        atmosphereAltitude={0.14}
             
             // Country Polygon Highlighting & tooltips
             polygonsData={countriesGeoJson?.features || []}
@@ -811,10 +800,10 @@ export const GlobeScene: React.FC<GlobeSceneProps> = ({
             backgroundColor="rgba(0,0,0,0)"
             globeImageUrl={globeImage || undefined}
             globeMaterial={customGlobeMaterial}
-            bumpImageUrl={isHolographic || isMobile ? undefined : "https://unpkg.com/three-globe/example/img/earth-topology.png"}
-            showAtmosphere={!isMobile}
-            atmosphereColor={atmosphereColor}
-            atmosphereAltitude={0.15}
+        bumpImageUrl={isMobile ? undefined : "https://unpkg.com/three-globe/example/img/earth-topology.png"}
+        showAtmosphere={!isMobile}
+        atmosphereColor={atmosphereColor}
+        atmosphereAltitude={0.14}
             
             // Country Polygon Highlighting & tooltips
             polygonsData={countriesGeoJson?.features || []}
@@ -872,10 +861,10 @@ export const GlobeScene: React.FC<GlobeSceneProps> = ({
         backgroundColor="rgba(0,0,0,0)"
         globeImageUrl={globeImage || undefined}
         globeMaterial={customGlobeMaterial}
-        bumpImageUrl={isHolographic || isMobile ? undefined : "https://unpkg.com/three-globe/example/img/earth-topology.png"}
+        bumpImageUrl={isMobile ? undefined : "https://unpkg.com/three-globe/example/img/earth-topology.png"}
         showAtmosphere={!isMobile}
         atmosphereColor={atmosphereColor}
-        atmosphereAltitude={isHolographic ? 0.2 : 0.14}
+        atmosphereAltitude={0.14}
         
         // Country Polygon Highlight, borders & interactive labels
         polygonsData={countriesGeoJson?.features || []}
