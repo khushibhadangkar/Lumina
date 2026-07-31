@@ -39,7 +39,6 @@ Built with modern frontend technologies, Lumina emphasizes performance, modular 
 ## 🌎 Interactive 3D Globe
 
 - Real-time globe rendering
-- Country selection
 - Interactive hotspots
 - Animated trade routes
 - Atmospheric effects
