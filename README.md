@@ -18,7 +18,7 @@
 
 ---
 
-**Live Demo • Documentation • Architecture**
+**IN DEVELOPMENT**
 
 </div>
 
