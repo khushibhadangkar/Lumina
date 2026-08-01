@@ -1,8 +1,10 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
-import { X, Globe, TrendingUp, Cpu, Award } from "lucide-react";
+import { X, Globe, TrendingUp, Cpu, Award, Sparkles, AlertCircle } from "lucide-react";
 import { CountryIntelEngine } from "../../services/countryIntelEngine";
 import type { CountryResearchProfile } from "../../services/countryIntelEngine";
+import { generateIntelBrief } from "../../services/geminiService";
+import type { BriefContext } from "../../services/geminiService";
 
 interface ResearchDossierProps {
   countryId: string;
@@ -10,12 +12,19 @@ interface ResearchDossierProps {
   onClose: () => void;
 }
 
-type TabType = "overview" | "metrics" | "trade" | "insights" | "topics";
+type TabType = "overview" | "metrics" | "trade" | "insights" | "topics" | "ai-brief";
 
 export const ResearchDossier: React.FC<ResearchDossierProps> = ({ countryId, searchQuery, onClose }) => {
   const [activeTab, setActiveTab] = useState<TabType>("overview");
   const [dossier, setDossier] = useState<CountryResearchProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  // AI Brief state
+  const [briefText, setBriefText] = useState("");
+  const [briefLoading, setBriefLoading] = useState(false);
+  const [briefDone, setBriefDone] = useState(false);
+  const [briefError, setBriefError] = useState("");
+  const briefRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     let active = true;
@@ -26,6 +35,12 @@ export const ResearchDossier: React.FC<ResearchDossierProps> = ({ countryId, sea
         setIsLoading(false);
       }
     });
+    // Reset AI brief when country or topic changes
+    setBriefText("");
+    setBriefDone(false);
+    setBriefError("");
+    setBriefLoading(false);
+
     return () => {
       active = false;
     };
@@ -176,8 +191,9 @@ export const ResearchDossier: React.FC<ResearchDossierProps> = ({ countryId, sea
           gap: "4px"
         }}
       >
-        {(["overview", "metrics", "trade", "insights", "topics"] as TabType[]).map(tab => {
+        {(["overview", "metrics", "trade", "insights", "topics", "ai-brief"] as TabType[]).map(tab => {
           const isActive = activeTab === tab;
+          const isAI = tab === "ai-brief";
           return (
             <button
               key={tab}
@@ -186,8 +202,12 @@ export const ResearchDossier: React.FC<ResearchDossierProps> = ({ countryId, sea
                 flex: 1,
                 background: "none",
                 border: "none",
-                borderBottom: isActive ? "2px solid var(--accent-gold)" : "2px solid transparent",
-                color: isActive ? "#ffffff" : "var(--text-secondary)",
+                borderBottom: isActive
+                  ? `2px solid ${isAI ? "#a78bfa" : "var(--accent-gold)"}`
+                  : "2px solid transparent",
+                color: isActive
+                  ? isAI ? "#a78bfa" : "#ffffff"
+                  : "var(--text-secondary)",
                 padding: "8px 0",
                 fontSize: "9px",
                 textTransform: "uppercase",
@@ -195,10 +215,15 @@ export const ResearchDossier: React.FC<ResearchDossierProps> = ({ countryId, sea
                 cursor: "pointer",
                 outline: "none",
                 transition: "all 0.2s",
-                fontWeight: isActive ? 600 : 400
+                fontWeight: isActive ? 600 : 400,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "3px"
               }}
             >
-              {tab === "insights" ? "insights" : tab === "topics" ? "topics" : tab}
+              {isAI && <Sparkles size={8} />}
+              {tab === "ai-brief" ? "AI" : tab}
             </button>
           );
         })}
@@ -368,6 +393,199 @@ export const ResearchDossier: React.FC<ResearchDossierProps> = ({ countryId, sea
         )}
 
         {/* 5. RELATED TOPICS TAB */}
+        {/* 6. AI INTELLIGENCE BRIEF TAB */}
+        {activeTab === "ai-brief" && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            style={{ display: "flex", flexDirection: "column", gap: "12px" }}
+          >
+            {/* Header */}
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <Sparkles size={13} style={{ color: "#a78bfa" }} />
+              <span style={{ fontSize: "9px", color: "#a78bfa", textTransform: "uppercase", letterSpacing: "0.12em", fontWeight: 600 }}>
+                Gemini AI Intelligence Brief
+              </span>
+            </div>
+
+            {/* Context line */}
+            <p style={{ fontSize: "10px", color: "var(--text-secondary)", fontWeight: 300, lineHeight: "1.5", margin: 0 }}>
+              Live analysis grounded in Lumina's scored data for{" "}
+              <span style={{ color: "#ffffff" }}>{dossier?.name}</span>{" × "}
+              <span style={{ color: "var(--accent-gold)" }}>{searchQuery || "current topic"}</span>.
+            </p>
+
+            {/* Generate button */}
+            {!briefLoading && !briefDone && !briefError && (
+              <button
+                onClick={async () => {
+                  if (!dossier) return;
+                  setBriefLoading(true);
+                  setBriefText("");
+                  setBriefError("");
+                  setBriefDone(false);
+
+                  // Build context from dossier data
+                  const metrics = dossier.keyMetrics as Record<string, string>;
+                  const ctx: BriefContext = {
+                    countryName: dossier.name,
+                    countryId: countryId,
+                    topic: searchQuery || "global trade",
+                    productionScore: parseFloat(metrics["Production Score"] || metrics["Production"] || "0") || 0,
+                    demandScore: parseFloat(metrics["Demand Score"] || metrics["Demand"] || "0") || 0,
+                    growthScore: parseFloat(metrics["Growth Score"] || metrics["Growth Rate"] || "0") || 0,
+                    exportScore: parseFloat(metrics["Export Score"] || metrics["Exports"] || "0") || 0,
+                    importScore: parseFloat(metrics["Import Score"] || metrics["Imports"] || "0") || 0,
+                    opportunityScore: parseFloat(metrics["Opportunity Score"] || metrics["Opportunity"] || "0") || 0,
+                    summary: dossier.overview || "",
+                    insights: dossier.aiInsights || [],
+                    tradePartners: dossier.tradePartners || [],
+                    region: dossier.region || "",
+                  };
+
+                  await generateIntelBrief(
+                    ctx,
+                    (chunk) => {
+                      setBriefText(prev => prev + chunk);
+                      // Auto-scroll
+                      if (briefRef.current) {
+                        briefRef.current.scrollTop = briefRef.current.scrollHeight;
+                      }
+                    },
+                    () => {
+                      setBriefLoading(false);
+                      setBriefDone(true);
+                    },
+                    (err) => {
+                      setBriefLoading(false);
+                      setBriefError(err);
+                    }
+                  );
+                }}
+                style={{
+                  background: "rgba(167, 139, 250, 0.08)",
+                  border: "1px solid rgba(167, 139, 250, 0.3)",
+                  borderRadius: "10px",
+                  padding: "10px 16px",
+                  color: "#a78bfa",
+                  fontSize: "10px",
+                  fontFamily: "monospace",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.08em",
+                  cursor: "pointer",
+                  outline: "none",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  transition: "all 0.3s ease",
+                  width: "100%",
+                  justifyContent: "center"
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = "rgba(167, 139, 250, 0.15)";
+                  e.currentTarget.style.borderColor = "#a78bfa";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "rgba(167, 139, 250, 0.08)";
+                  e.currentTarget.style.borderColor = "rgba(167, 139, 250, 0.3)";
+                }}
+              >
+                <Sparkles size={11} />
+                Generate Intelligence Brief
+              </button>
+            )}
+
+            {/* Loading pulse */}
+            {briefLoading && briefText === "" && (
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", padding: "12px 0" }}>
+                <div style={{
+                  width: "6px", height: "6px", borderRadius: "50%",
+                  background: "#a78bfa",
+                  animation: "pulse 1.2s ease-in-out infinite"
+                }} />
+                <span style={{ fontSize: "10px", color: "#a78bfa", fontFamily: "monospace" }}>
+                  Querying Gemini Intelligence Core...
+                </span>
+              </div>
+            )}
+
+            {/* Streaming text output */}
+            {briefText && (
+              <div
+                ref={briefRef}
+                style={{
+                  background: "rgba(167, 139, 250, 0.04)",
+                  border: "1px solid rgba(167, 139, 250, 0.12)",
+                  borderRadius: "12px",
+                  padding: "14px",
+                  fontSize: "11px",
+                  lineHeight: "1.7",
+                  color: "var(--text-primary)",
+                  fontWeight: 300,
+                  whiteSpace: "pre-wrap",
+                  maxHeight: "320px",
+                  overflowY: "auto",
+                  position: "relative"
+                }}
+              >
+                {briefText}
+                {briefLoading && (
+                  <span style={{
+                    display: "inline-block",
+                    width: "2px",
+                    height: "12px",
+                    background: "#a78bfa",
+                    marginLeft: "2px",
+                    verticalAlign: "middle",
+                    animation: "blink 0.8s step-end infinite"
+                  }} />
+                )}
+              </div>
+            )}
+
+            {/* Regenerate button */}
+            {briefDone && (
+              <button
+                onClick={() => {
+                  setBriefText("");
+                  setBriefDone(false);
+                  setBriefError("");
+                }}
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: "var(--text-secondary)",
+                  fontSize: "9px",
+                  fontFamily: "monospace",
+                  textTransform: "uppercase",
+                  cursor: "pointer",
+                  outline: "none",
+                  letterSpacing: "0.08em",
+                  padding: "4px 0"
+                }}
+              >
+                ↺ Regenerate Brief
+              </button>
+            )}
+
+            {/* Error state */}
+            {briefError && (
+              <div style={{
+                display: "flex",
+                gap: "8px",
+                alignItems: "flex-start",
+                background: "rgba(239, 68, 68, 0.06)",
+                border: "1px solid rgba(239, 68, 68, 0.2)",
+                borderRadius: "10px",
+                padding: "12px"
+              }}>
+                <AlertCircle size={13} style={{ color: "#ef4444", flexShrink: 0, marginTop: "1px" }} />
+                <span style={{ fontSize: "10px", color: "#ef4444", lineHeight: "1.5" }}>{briefError}</span>
+              </div>
+            )}
+          </motion.div>
+        )}
+
         {activeTab === "topics" && (
           <motion.div
             initial={{ opacity: 0 }}

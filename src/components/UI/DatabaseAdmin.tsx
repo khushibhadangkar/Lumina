@@ -110,14 +110,17 @@ export const DatabaseAdmin: React.FC<DatabaseAdminProps> = ({ onClose, onRefresh
   };
 
   const handleReseed = async () => {
-    if (!confirm("Are you sure you want to wipe local tables and perform a clean DB seeding?")) return;
+    const isSupabase = supabaseAdapter.isConfigured();
+    const target = isSupabase ? "Supabase PostgreSQL" : "local IndexedDB";
+    if (!confirm(`This will WIPE and re-seed all data in ${target}. Are you sure?`)) return;
     setIsLoading(true);
-    setLogs(prev => [...prev, "Initiating database purge and re-seed..."]);
+    setLogs(prev => [...prev, `Initiating purge and re-seed → ${target}...`]);
     try {
       const seedLogs = await db.seed(true);
       setLogs(prev => [...prev, ...seedLogs]);
       await syncCounts();
       onRefreshData();
+      setLogs(prev => [...prev, `✦ All seed data pushed to ${target} successfully!`]);
     } catch (err: any) {
       setLogs(prev => [...prev, `Seed error: ${err.message}`]);
     } finally {
@@ -258,13 +261,61 @@ country_metrics,CA,hydrogen,12,45,6.2,20,1800,90,Vancouver fuel cell logistics p
           </span>
         </div>
 
-        {/* Database Status statistics row */}
+        {/* Table row counts */}
         <div style={{ display: "flex", gap: "8px", justifyContent: "space-between", fontSize: "10px", color: "var(--text-secondary)", marginBottom: "12px" }}>
           <div>Countries: <span style={{ color: "#ffffff", fontWeight: 500 }}>{counts.countries}</span></div>
           <div>Topics: <span style={{ color: "#ffffff", fontWeight: 500 }}>{counts.topics}</span></div>
           <div>Metrics: <span style={{ color: "#ffffff", fontWeight: 500 }}>{counts.metrics}</span></div>
           <div>Routes: <span style={{ color: "#ffffff", fontWeight: 500 }}>{counts.routes}</span></div>
         </div>
+
+        {/* PUSH TO SUPABASE — shown when Supabase is active */}
+        {supabaseAdapter.isConfigured() && (
+          <>
+            <div className="subtle-line" style={{ margin: "6px 0 10px 0" }} />
+            <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+              <span style={{ fontSize: "8.5px", color: "#38bdf8", textTransform: "uppercase", letterSpacing: "0.1em" }}>
+                ✦ Supabase Connected via .env
+              </span>
+              <p style={{ fontSize: "10px", color: "var(--text-secondary)", lineHeight: "1.5", margin: 0 }}>
+                Tables are empty? Click below to push all 19 countries, 12 topics, and all metrics to your Postgres database.
+              </p>
+              <button
+                onClick={handleReseed}
+                disabled={isLoading}
+                style={{
+                  background: "rgba(56, 189, 248, 0.1)",
+                  border: "1px solid rgba(56, 189, 248, 0.4)",
+                  borderRadius: "8px",
+                  padding: "9px 14px",
+                  color: "#38bdf8",
+                  fontSize: "10.5px",
+                  fontWeight: 600,
+                  cursor: isLoading ? "not-allowed" : "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "6px",
+                  transition: "all 0.2s",
+                  opacity: isLoading ? 0.5 : 1
+                }}
+                onMouseEnter={(e) => {
+                  if (!isLoading) {
+                    e.currentTarget.style.background = "rgba(56, 189, 248, 0.18)";
+                    e.currentTarget.style.borderColor = "#38bdf8";
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "rgba(56, 189, 248, 0.1)";
+                  e.currentTarget.style.borderColor = "rgba(56, 189, 248, 0.4)";
+                }}
+              >
+                <Cloud size={13} />
+                {isLoading ? "Pushing data..." : "Push Seed Data → Supabase"}
+              </button>
+            </div>
+          </>
+        )}
 
         <div className="subtle-line" style={{ margin: "10px 0" }} />
 

@@ -359,6 +359,16 @@ class SupabaseAdapter {
 
 export const supabaseAdapter = new SupabaseAdapter();
 
+// Auto-configure from Vite environment variables if present
+{
+  const envUrl = (import.meta.env.VITE_SUPABASE_URL || "").trim();
+  const envKey = (import.meta.env.VITE_SUPABASE_ANON_KEY || "").trim();
+  if (envUrl && envKey) {
+    supabaseAdapter.updateCredentials(envUrl, envKey);
+  }
+}
+
+
 // -----------------------------------------------------------------------------
 // INDEXEDDB SERVICE (Browser-based Relational Database)
 // -----------------------------------------------------------------------------
