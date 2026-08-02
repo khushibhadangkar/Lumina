@@ -1,5 +1,6 @@
 // Narrative & Scene Engine for Lumina Cinematic Interactive Documentaries
 import { DataIntelligenceEngine } from "./dataEngine";
+import type { MarketOverview, HotspotData, TradeCorridor } from "./dataEngine";
 import { generateStorytellingJourney } from "./geminiService";
 
 export interface NarrativeScene {
@@ -12,12 +13,25 @@ export interface NarrativeScene {
   heatmapMode: string; // "production", "demand", "growth", "exports", "imports", "opportunity"
   timelineVal: number; // 0 (2026) to 50 (2076)
   highlightedHotspotId: string | null;
+
+  // New AI Storytelling fields
+  stage?: "ORIGIN" | "JOURNEY" | "PLAYERS" | "INFLUENCES" | "INSIGHTS";
+  shortSummary?: string;
+  detailedExplanation?: string;
+  countriesInvolved?: string[];
+  companiesInvolved?: string[];
+  suggestedAnimations?: string;
+  relatedTopics?: string[];
 }
 
 export interface CinematicJourney {
   query: string;
   name: string;
   scenes: NarrativeScene[];
+  // Dynamic AI-generated visualization payload
+  overview?: MarketOverview;
+  hotspots?: HotspotData[];
+  corridors?: TradeCorridor[];
 }
 
 const PRESET_STORIES: Record<string, CinematicJourney> = {

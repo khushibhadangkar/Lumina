@@ -213,7 +213,7 @@ export const DataOverlay: React.FC<DataOverlayProps> = ({
 
       {/* ================= BOTTOM CONSOLE STATUS BAR ================= */}
       <div className="overlay-footer" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", fontSize: "9px", color: "var(--text-secondary)", pointerEvents: "auto" }}>
-        <span>LUMINA GLOBAL INTELLIGENCE DECK // COMPLY WGS-84</span>
+        <span>LUMINA GLOBAL INTELLIGENCE</span>
         
         <AnimatePresence>
           {hoveredHotspot && (
