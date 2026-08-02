@@ -263,33 +263,6 @@ Designed with performance in mind:
 
 ---
 
-# Installation
-
-Clone the repository
-
-```bash
-git clone https://github.com/yourusername/lumina.git
-```
-
-Install dependencies
-
-```bash
-npm install
-```
-
-Start development server
-
-```bash
-npm run dev
-```
-
-Build production version
-
-```bash
-npm run build
-```
-
----
 
 # Future Enhancements
 
