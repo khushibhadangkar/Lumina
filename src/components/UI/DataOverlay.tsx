@@ -78,7 +78,7 @@ export const DataOverlay: React.FC<DataOverlayProps> = ({
       <div className="overlay-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", pointerEvents: "auto" }}>
         <div>
           <h2 className="documentary-title" style={{ fontSize: isMobile ? "12px" : "14px", letterSpacing: "0.18em", textTransform: "uppercase" }}>
-            LUMINA // INTEL CORE
+            LUMINA 
           </h2>
           <p style={{ fontSize: "9px", color: "var(--text-secondary)", letterSpacing: "0.05em", textTransform: "uppercase", marginTop: "4px" }}>
             Source: {isCompare ? compareData.payloadA.overview.source : overview.source}
