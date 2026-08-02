@@ -1,5 +1,6 @@
 // Narrative & Scene Engine for Lumina Cinematic Interactive Documentaries
 import { DataIntelligenceEngine } from "./dataEngine";
+import { generateStorytellingJourney } from "./geminiService";
 
 export interface NarrativeScene {
   title: string;
@@ -267,6 +268,9 @@ const PRESET_STORIES: Record<string, CinematicJourney> = {
 };
 
 export class NarrativeEngine {
+  // Local cache for dynamically generated stories
+  static cache: Record<string, CinematicJourney> = {};
+
   /**
    * Generates a 5-scene documentary narrative for any search query.
    * If a preset is available, it uses the preset.
@@ -274,6 +278,11 @@ export class NarrativeEngine {
    */
   static async getNarrativeJourney(query: string): Promise<CinematicJourney> {
     const cleanQuery = query.toLowerCase().trim();
+
+    // 0. Check local cache
+    if (NarrativeEngine.cache[cleanQuery]) {
+      return NarrativeEngine.cache[cleanQuery];
+    }
 
     // 1. Check if we have pre-programmed presets
     if (cleanQuery.includes("semiconductor") || cleanQuery.includes("chip")) {
@@ -292,6 +301,18 @@ export class NarrativeEngine {
     // 2. Dynamic Fallback Narratives
     // Fetch payload from the DataIntelligenceEngine
     const payload = (await DataIntelligenceEngine.getIntelligence(query)) || (await DataIntelligenceEngine.getIntelligence("coffee"))!;
+
+    // 3. Try to generate a storytelling journey using Google Gemini AI
+    try {
+      const journey = await generateStorytellingJourney(query, payload);
+      // Validate that we received at least some scenes
+      if (journey && journey.scenes && journey.scenes.length > 0) {
+        NarrativeEngine.cache[cleanQuery] = journey;
+        return journey;
+      }
+    } catch (err) {
+      console.warn("Gemini storytelling generation failed, falling back to local data storytelling:", err);
+    }
     const name = `${payload.query} Global Matrix`;
     const hotspots = payload.hotspots;
     

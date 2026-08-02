@@ -40,6 +40,10 @@ export const App: React.FC = () => {
   const [storyModeActive, setStoryModeActive] = useState(false); // Story mode button in search bar
   const [activeJourney, setActiveJourney] = useState<CinematicJourney | null>(null);
   const [activeSceneStep, setActiveSceneStep] = useState(0);
+  const [storiesList, setStoriesList] = useState([
+    { id: "semiconductors", label: "Semiconductor Flow ✦" },
+    { id: "lithium", label: "Lithium Supply Chain ✦" }
+  ]);
 
   // Geospatial Country Outlines and Dossiers state
   const [selectedCountryId, setSelectedCountryId] = useState<string | null>(null);
@@ -151,6 +155,15 @@ export const App: React.FC = () => {
     setActiveJourney(journey);
     setActiveSceneStep(0);
     setSearchQuery(journey.query);
+
+    // Add generated/searched journey to the stories list dynamically
+    const storyId = journey.query.toLowerCase().trim();
+    if (storyId && !storiesList.some(s => s.id === storyId)) {
+      setStoriesList(prev => [
+        ...prev,
+        { id: storyId, label: `${journey.query} Market ✦` }
+      ]);
+    }
   };
 
   const handleModeChange = (mode: string) => {
@@ -338,6 +351,7 @@ export const App: React.FC = () => {
               activeStoryId={activeJourney ? activeJourney.query.toLowerCase() : null}
               onSelectStory={handleSelectStory}
               availableTopics={availableTopics}
+              storiesList={storiesList}
             />
 
             {/* Bloomberg/National Geographic Report Sheets */}

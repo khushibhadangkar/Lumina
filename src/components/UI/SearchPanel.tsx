@@ -10,12 +10,8 @@ interface SearchPanelProps {
   activeStoryId: string | null;
   onSelectStory: (storyId: string | null) => void;
   availableTopics?: string[];
+  storiesList?: { id: string; label: string }[];
 }
-
-const STORIES_LIST = [
-  { id: "semiconductors", label: "Semiconductor Flow ✦" },
-  { id: "lithium", label: "Lithium Supply Chain ✦" }
-];
 
 export const SearchPanel: React.FC<SearchPanelProps> = ({ 
   onSearch, 
@@ -24,6 +20,10 @@ export const SearchPanel: React.FC<SearchPanelProps> = ({
   setStoryModeActive,
   activeStoryId,
   onSelectStory,
+  storiesList = [
+    { id: "semiconductors", label: "Semiconductor Flow ✦" },
+    { id: "lithium", label: "Lithium Supply Chain ✦" }
+  ],
   availableTopics = [
     "AI Engineers",
     "Semiconductors",
@@ -184,70 +184,92 @@ export const SearchPanel: React.FC<SearchPanelProps> = ({
       <div
         style={{
           display: "flex",
-          flexWrap: "wrap",
-          justifyContent: "center",
-          gap: "6px",
+          flexDirection: "column",
+          alignItems: "center",
+          gap: "8px",
           marginTop: "14px",
           width: "100%",
         }}
       >
-        {storyModeActive ? (
-          STORIES_LIST.map((story) => {
-            const isSelected = activeStoryId === story.id;
-            return (
-              <motion.button
-                key={story.id}
-                type="button"
-                onClick={() => handleStoryClick(story.id)}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                style={{
-                  background: isSelected ? "rgba(207, 168, 100, 0.15)" : "rgba(255, 255, 255, 0.02)",
-                  border: isSelected ? "1px solid var(--accent-gold)" : "1px solid rgba(255, 255, 255, 0.04)",
-                  color: isSelected ? "var(--accent-gold)" : "var(--text-secondary)",
-                  borderRadius: "20px",
-                  padding: "5px 12px",
-                  fontSize: "10.5px",
-                  cursor: "pointer",
-                  fontFamily: "var(--font-sans)",
-                  fontWeight: 500,
-                  transition: "all 0.2s ease",
-                  outline: "none",
-                }}
-              >
-                {story.label}
-              </motion.button>
-            );
-          })
-        ) : (
-          availableTopics.map((tag) => {
-            const isSelected = activeSearch.toLowerCase() === tag.toLowerCase();
-            return (
-              <motion.button
-                key={tag}
-                type="button"
-                onClick={() => handleSuggestionClick(tag)}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                style={{
-                  background: isSelected ? "rgba(255, 255, 255, 0.08)" : "rgba(255, 255, 255, 0.02)",
-                  border: isSelected ? "1px solid rgba(255, 255, 255, 0.25)" : "1px solid rgba(255, 255, 255, 0.04)",
-                  color: isSelected ? "#ffffff" : "var(--text-secondary)",
-                  borderRadius: "20px",
-                  padding: "4px 10px",
-                  fontSize: "10.5px",
-                  cursor: "pointer",
-                  fontFamily: "var(--font-sans)",
-                  fontWeight: 400,
-                  transition: "all 0.2s ease",
-                  outline: "none",
-                }}
-              >
-                {tag}
-              </motion.button>
-            );
-          })
-        )}
+        <span
+          style={{
+            fontSize: "9px",
+            color: "var(--text-secondary)",
+            textTransform: "uppercase",
+            letterSpacing: "0.1em",
+            fontWeight: 500,
+          }}
+        >
+          {storyModeActive ? "Global Trends & Stories" : "Available Global Layers"}
+        </span>
+
+        <div
+          style={{
+            display: "flex",
+            flexWrap: "wrap",
+            justifyContent: "center",
+            gap: "6px",
+            width: "100%",
+          }}
+        >
+          {storyModeActive ? (
+            storiesList.map((story) => {
+              const isSelected = activeStoryId === story.id;
+              return (
+                <motion.button
+                  key={story.id}
+                  type="button"
+                  onClick={() => handleStoryClick(story.id)}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  style={{
+                    background: isSelected ? "rgba(207, 168, 100, 0.15)" : "rgba(255, 255, 255, 0.02)",
+                    border: isSelected ? "1px solid var(--accent-gold)" : "1px solid rgba(255, 255, 255, 0.04)",
+                    color: isSelected ? "var(--accent-gold)" : "var(--text-secondary)",
+                    borderRadius: "20px",
+                    padding: "5px 12px",
+                    fontSize: "10.5px",
+                    cursor: "pointer",
+                    fontFamily: "var(--font-sans)",
+                    fontWeight: 500,
+                    transition: "all 0.2s ease",
+                    outline: "none",
+                  }}
+                >
+                  {story.label}
+                </motion.button>
+              );
+            })
+          ) : (
+            availableTopics.map((tag) => {
+              const isSelected = activeSearch.toLowerCase() === tag.toLowerCase();
+              return (
+                <motion.button
+                  key={tag}
+                  type="button"
+                  onClick={() => handleSuggestionClick(tag)}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  style={{
+                    background: isSelected ? "rgba(255, 255, 255, 0.08)" : "rgba(255, 255, 255, 0.02)",
+                    border: isSelected ? "1px solid rgba(255, 255, 255, 0.25)" : "1px solid rgba(255, 255, 255, 0.04)",
+                    color: isSelected ? "#ffffff" : "var(--text-secondary)",
+                    borderRadius: "20px",
+                    padding: "4px 10px",
+                    fontSize: "10.5px",
+                    cursor: "pointer",
+                    fontFamily: "var(--font-sans)",
+                    fontWeight: 400,
+                    transition: "all 0.2s ease",
+                    outline: "none",
+                  }}
+                >
+                  {tag}
+                </motion.button>
+              );
+            })
+          )}
+        </div>
       </div>
     </motion.div>
   );

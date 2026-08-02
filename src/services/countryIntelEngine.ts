@@ -14,6 +14,7 @@ export interface CountryResearchProfile {
   keyMetrics: Record<string, string>;
   aiInsights: string[];
   relatedTopics: string[];
+  region?: string;
 }
 
 const BASELINE_DOSSIERS: Record<string, {
@@ -419,6 +420,9 @@ export class CountryIntelEngine {
     const baseline = BASELINE_DOSSIERS[cid];
     if (!baseline) return null;
 
+    const countries = await db.getCountries();
+    const country = countries.find(c => c.id === cid);
+
     const profile: CountryResearchProfile = {
       id: cid,
       name: baseline.name,
@@ -428,7 +432,8 @@ export class CountryIntelEngine {
       tradePartners: [...baseline.tradePartners],
       keyMetrics: { ...baseline.keyMetrics },
       aiInsights: [...baseline.aiInsights],
-      relatedTopics: [...baseline.relatedTopics]
+      relatedTopics: [...baseline.relatedTopics],
+      region: country ? country.region : "Global"
     };
 
     // If query is active, query IndexedDB / Supabase dynamically
