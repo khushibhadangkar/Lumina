@@ -241,7 +241,7 @@ export const DataOverlay: React.FC<DataOverlayProps> = ({
           )}
         </AnimatePresence>
 
-        <span>WGS-84 OBLATE SPHEROID MESH</span>
+        <span></span>
       </div>
     </div>
   );
