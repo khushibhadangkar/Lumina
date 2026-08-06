@@ -267,7 +267,6 @@ Designed with performance in mind:
 # Future Enhancements
 
 - Live economic APIs
-- Satellite imagery integration
 - AI-powered trade forecasting
 - Multi-user collaboration
 - Exportable analytics
