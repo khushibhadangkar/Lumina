@@ -62,7 +62,7 @@ create table if not exists related_topics (
 );
 
 -- ============================================================
--- Row Level Security — allow public read + authenticated write
+-- Row Level Security — Allow public select read policies only
 -- ============================================================
 alter table countries        enable row level security;
 alter table topics           enable row level security;
@@ -71,53 +71,13 @@ alter table trade_routes     enable row level security;
 alter table country_insights enable row level security;
 alter table related_topics   enable row level security;
 
--- Drop old anonymous insert policies if they exist
-drop policy if exists "Anon insert countries"        on countries;
-drop policy if exists "Anon insert topics"           on topics;
-drop policy if exists "Anon insert country_metrics"  on country_metrics;
-drop policy if exists "Anon insert trade_routes"     on trade_routes;
-drop policy if exists "Anon insert country_insights" on country_insights;
-drop policy if exists "Anon insert related_topics"   on related_topics;
-
--- Drop old anonymous delete policies if they exist
-drop policy if exists "Anon delete countries"        on countries;
-drop policy if exists "Anon delete topics"           on topics;
-drop policy if exists "Anon delete country_metrics"  on country_metrics;
-drop policy if exists "Anon delete trade_routes"     on trade_routes;
-drop policy if exists "Anon delete country_insights" on country_insights;
-drop policy if exists "Anon delete related_topics"   on related_topics;
-
--- Drop existing public read policies to recreate them cleanly
+-- Drop existing public read policies if they exist (to recreate them cleanly)
 drop policy if exists "Public read countries"        on countries;
 drop policy if exists "Public read topics"           on topics;
 drop policy if exists "Public read country_metrics"  on country_metrics;
 drop policy if exists "Public read trade_routes"     on trade_routes;
 drop policy if exists "Public read country_insights" on country_insights;
 drop policy if exists "Public read related_topics"   on related_topics;
-
--- Drop authenticated insert policies if they exist
-drop policy if exists "Authenticated insert countries"        on countries;
-drop policy if exists "Authenticated insert topics"           on topics;
-drop policy if exists "Authenticated insert country_metrics"  on country_metrics;
-drop policy if exists "Authenticated insert trade_routes"     on trade_routes;
-drop policy if exists "Authenticated insert country_insights" on country_insights;
-drop policy if exists "Authenticated insert related_topics"   on related_topics;
-
--- Drop authenticated update policies if they exist
-drop policy if exists "Authenticated update countries"        on countries;
-drop policy if exists "Authenticated update topics"           on topics;
-drop policy if exists "Authenticated update country_metrics"  on country_metrics;
-drop policy if exists "Authenticated update trade_routes"     on trade_routes;
-drop policy if exists "Authenticated update country_insights" on country_insights;
-drop policy if exists "Authenticated update related_topics"   on related_topics;
-
--- Drop authenticated delete policies if they exist
-drop policy if exists "Authenticated delete countries"        on countries;
-drop policy if exists "Authenticated delete topics"           on topics;
-drop policy if exists "Authenticated delete country_metrics"  on country_metrics;
-drop policy if exists "Authenticated delete trade_routes"     on trade_routes;
-drop policy if exists "Authenticated delete country_insights" on country_insights;
-drop policy if exists "Authenticated delete related_topics"   on related_topics;
 
 -- SELECT: Allow public read (both anonymous and authenticated users)
 create policy "Public read countries"        on countries        for select using (true);
