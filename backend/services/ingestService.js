@@ -231,5 +231,109 @@ export const ingestService = {
       timestamp: endTimestamp,
       logs
     };
+  },
+
+  async ingestTradeFlows({ reporterCode, partnerCode, period, cmdCode, flowCode }) {
+    const logs = [];
+    const timestamp = new Date().toISOString();
+    logs.push(`[${timestamp}] Starting UN Comtrade public ingestion to trade_flows table`);
+    logs.push(`Parameters: reporter=${reporterCode}, partner=${partnerCode}, period=${period}, commodity=${cmdCode}, flow=${flowCode}`);
+
+    let results = [];
+    try {
+      results = await comtradeClient.fetchTradeData({
+        reporterCode,
+        partnerCode,
+        period,
+        cmdCode,
+        flowCode
+      });
+    } catch (err) {
+      throw new Error(`Failed to fetch Comtrade data: ${err.message}`);
+    }
+
+    logs.push(`Retrieved ${results.length} raw records from Comtrade API.`);
+    if (results.length === 0) {
+      return {
+        success: true,
+        recordsIngested: 0,
+        logs
+      };
+    }
+
+    const recordsToUpsert = [];
+    const rawBaseUrl = (process.env.COMTRADE_BASE_URL || "").trim();
+    const baseUrl = rawBaseUrl || "https://comtradeapi.un.org/public/v1";
+    const sourceUrl = `${baseUrl}/preview/C/A/HS?reporterCode=${reporterCode}&period=${period}&partnerCode=${partnerCode}&cmdCode=${cmdCode}&flowCode=${flowCode}`;
+
+    for (const record of results) {
+      const repCode = parseInt(record.reporterCode || reporterCode);
+      const partCode = parseInt(record.partnerCode || partnerCode);
+      const commodityCode = (record.cmdCode || cmdCode || "").toString();
+      const flowVal = (record.flowCode || flowCode || "").toString();
+      const per = (record.period || period || "").toString();
+      const mot = parseInt(record.motCode !== undefined && record.motCode !== null ? record.motCode : -1);
+
+      if (isNaN(repCode) || isNaN(partCode) || !commodityCode || !flowVal || !per || isNaN(mot)) {
+        logs.push(`Warning: Skipping record due to missing key fields: reporter=${repCode}, partner=${partCode}, commodity=${commodityCode}, flow=${flowVal}, period=${per}, mot=${mot}`);
+        continue;
+      }
+
+      const quantity = record.qty !== undefined && record.qty !== null ? parseFloat(record.qty) : null;
+      const rawNetWgt = record.netWgt !== undefined && record.netWgt !== null ? record.netWgt : record.netWeight;
+      const netWeight = rawNetWgt !== undefined && rawNetWgt !== null ? parseFloat(rawNetWgt) : null;
+      const rawGrossWgt = record.grossWgt !== undefined && record.grossWgt !== null ? record.grossWgt : record.grossWeight;
+      const grossWeight = rawGrossWgt !== undefined && rawGrossWgt !== null ? parseFloat(rawGrossWgt) : null;
+      const primaryValue = record.primaryValue !== undefined && record.primaryValue !== null ? parseFloat(record.primaryValue) : null;
+      const rawFobVal = record.fobvalue !== undefined && record.fobvalue !== null ? record.fobvalue : record.fobValue;
+      const fobValue = rawFobVal !== undefined && rawFobVal !== null ? parseFloat(rawFobVal) : null;
+
+      const typeCode = record.typeCode || null;
+      const freqCode = record.freqCode || null;
+      const clCode = record.clCode || null;
+      const qtyUnitCode = record.qtyUnitCode !== undefined && record.qtyUnitCode !== null ? parseInt(record.qtyUnitCode) : null;
+      const reporterISO = record.reporterISO || null;
+      const partnerISO = record.partnerISO || null;
+      const customsCode = record.customsCode !== undefined && record.customsCode !== null ? parseInt(record.customsCode) : null;
+
+      recordsToUpsert.push({
+        reporter_code: repCode,
+        partner_code: partCode,
+        commodity_code: commodityCode,
+        flow_code: flowVal,
+        period: per,
+        mot_code: mot,
+        quantity,
+        net_weight: netWeight,
+        gross_weight: grossWeight,
+        primary_value: primaryValue,
+        fob_value: fobValue,
+        source: "UN Comtrade Public API v1",
+        source_url: sourceUrl,
+        retrieved_at: new Date().toISOString(),
+        type_code: typeCode,
+        freq_code: freqCode,
+        cl_code: clCode,
+        qty_unit_code: qtyUnitCode,
+        reporter_iso: reporterISO,
+        partner_iso: partnerISO,
+        customs_code: customsCode
+      });
+    }
+
+    if (recordsToUpsert.length > 0) {
+      try {
+        await dbService.upsert("trade_flows", recordsToUpsert);
+        logs.push(`Successfully upserted ${recordsToUpsert.length} records into 'trade_flows' Supabase table.`);
+      } catch (err) {
+        throw new Error(`Failed to upsert records into Supabase trade_flows table: ${err.message}`);
+      }
+    }
+
+    return {
+      success: true,
+      recordsIngested: recordsToUpsert.length,
+      logs
+    };
   }
 };

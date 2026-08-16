@@ -131,3 +131,34 @@ create policy "Public read related_topics"   on related_topics   for select usin
 -- RLS default behavior blocks all writes for public/authenticated roles.
 -- Administrative database updates (insert, delete, reseed, ingest) are executed
 -- exclusively server-side via the backend proxy using the Supabase Service Role Key.
+
+-- DDL for trade_flows table preserving raw Comtrade dimensions
+create table if not exists trade_flows (
+  reporter_code      integer not null,
+  partner_code       integer not null,
+  commodity_code     text not null,
+  flow_code          text not null,
+  period             text not null,
+  mot_code           integer not null,
+  quantity           numeric,
+  net_weight         numeric,
+  gross_weight       numeric,
+  primary_value      numeric,
+  fob_value          numeric,
+  source             text,
+  source_url         text,
+  retrieved_at       timestamptz not null default now(),
+  type_code          text,
+  freq_code          text,
+  cl_code            text,
+  qty_unit_code      integer,
+  reporter_iso       text,
+  partner_iso        text,
+  customs_code       integer,
+  primary key (reporter_code, partner_code, commodity_code, flow_code, period, mot_code)
+);
+
+alter table trade_flows enable row level security;
+
+drop policy if exists "Public read trade_flows" on trade_flows;
+create policy "Public read trade_flows" on trade_flows for select using (true);

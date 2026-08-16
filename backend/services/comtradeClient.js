@@ -3,28 +3,20 @@
 // ============================================================
 
 export const comtradeClient = {
-  async fetchTradeData({ period, cmdCode, flowCode }) {
-    const apiKey = (process.env.COMTRADE_API_KEY || "").trim();
-    let baseUrl;
-    const headers = {};
-
-    if (apiKey) {
-      baseUrl = "https://comtradeapi.un.org/data/v1/get/C/A/HS";
-      headers["Ocp-Apim-Subscription-Key"] = apiKey;
-      headers["subscription-key"] = apiKey;
-    } else {
-      baseUrl = "https://comtradeapi.un.org/public/v1/preview/C/A/HS";
-    }
-
+  async fetchTradeData({ reporterCode, partnerCode, period, cmdCode, flowCode }) {
+    const rawBaseUrl = (process.env.COMTRADE_BASE_URL || "").trim();
+    const baseUrl = rawBaseUrl || "https://comtradeapi.un.org/public/v1";
+    
+    // Build parameters mapping
     const params = new URLSearchParams({
-      reporterCode: 'all',
-      partnerCode: 'all', // Get partner-level trade corridors
+      reporterCode: reporterCode.toString(),
+      partnerCode: partnerCode.toString(),
       period: period.toString(),
-      cmdCode: cmdCode,
-      flowCode: flowCode // 'M' for Imports, 'X' for Exports
+      cmdCode: cmdCode.toString(),
+      flowCode: flowCode.toString()
     });
 
-    const fullUrl = `${baseUrl}?${params.toString()}`;
+    const fullUrl = `${baseUrl}/preview/C/A/HS?${params.toString()}`;
 
     // 15 seconds timeout
     const controller = new AbortController();
@@ -32,7 +24,6 @@ export const comtradeClient = {
 
     try {
       const res = await fetch(fullUrl, {
-        headers,
         signal: controller.signal
       });
       clearTimeout(timeoutId);
@@ -46,7 +37,7 @@ export const comtradeClient = {
       }
 
       const data = await res.json();
-      return data.results || [];
+      return data.data || data.results || [];
     } catch (err) {
       clearTimeout(timeoutId);
       if (err.name === 'AbortError') {
