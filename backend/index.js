@@ -3,6 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import helmet from 'helmet';
 import { rateLimit } from 'express-rate-limit';
+import { ingestRouter } from './routes/ingestRouter.js';
 
 dotenv.config();
 
@@ -77,6 +78,7 @@ const apiAiLimiter = rateLimit({
 
 app.use('/api/db/', generalLimiter);
 app.use('/api/gemini/', apiAiLimiter);
+app.use('/api/admin/ingest', ingestRouter);
 
 function buildPrompt(ctx) {
   const insightBlock =

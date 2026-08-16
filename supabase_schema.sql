@@ -127,26 +127,7 @@ create policy "Public read trade_routes"     on trade_routes     for select usin
 create policy "Public read country_insights" on country_insights for select using (true);
 create policy "Public read related_topics"   on related_topics   for select using (true);
 
--- INSERT: Only authenticated users
-create policy "Authenticated insert countries"        on countries        for insert to authenticated with check (true);
-create policy "Authenticated insert topics"           on topics           for insert to authenticated with check (true);
-create policy "Authenticated insert country_metrics"  on country_metrics  for insert to authenticated with check (true);
-create policy "Authenticated insert trade_routes"     on trade_routes     for insert to authenticated with check (true);
-create policy "Authenticated insert country_insights" on country_insights for insert to authenticated with check (true);
-create policy "Authenticated insert related_topics"   on related_topics   for insert to authenticated with check (true);
-
--- UPDATE: Only authenticated users
-create policy "Authenticated update countries"        on countries        for update to authenticated using (true) with check (true);
-create policy "Authenticated update topics"           on topics           for update to authenticated using (true) with check (true);
-create policy "Authenticated update country_metrics"  on country_metrics  for update to authenticated using (true) with check (true);
-create policy "Authenticated update trade_routes"     on trade_routes     for update to authenticated using (true) with check (true);
-create policy "Authenticated update country_insights" on country_insights for update to authenticated using (true) with check (true);
-create policy "Authenticated update related_topics"   on related_topics   for update to authenticated using (true) with check (true);
-
--- DELETE: Only authenticated users
-create policy "Authenticated delete countries"        on countries        for delete to authenticated using (true);
-create policy "Authenticated delete topics"           on topics           for delete to authenticated using (true);
-create policy "Authenticated delete country_metrics"  on country_metrics  for delete to authenticated using (true);
-create policy "Authenticated delete trade_routes"     on trade_routes     for delete to authenticated using (true);
-create policy "Authenticated delete country_insights" on country_insights for delete to authenticated using (true);
-create policy "Authenticated delete related_topics"   on related_topics   for delete to authenticated using (true);
+-- NOTE: No INSERT, UPDATE, or DELETE policies are created. 
+-- RLS default behavior blocks all writes for public/authenticated roles.
+-- Administrative database updates (insert, delete, reseed, ingest) are executed
+-- exclusively server-side via the backend proxy using the Supabase Service Role Key.
