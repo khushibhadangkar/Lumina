@@ -287,21 +287,29 @@ const SEED_RELATED: RelatedTopic[] = [
 // -----------------------------------------------------------------------------
 
 class SupabaseAdapter {
-  private url: string;
-  private key: string;
+  private url: string = "";
+  private key: string = "";
+  private useBackendProxy: boolean = true;
 
   constructor() {
-    this.url = (import.meta.env.VITE_SUPABASE_URL || "").trim();
-    this.key = (import.meta.env.VITE_SUPABASE_ANON_KEY || "").trim();
+    // Check localStorage for runtime user overrides
+    const savedUrl = localStorage.getItem("VITE_SUPABASE_URL");
+    const savedKey = localStorage.getItem("VITE_SUPABASE_ANON_KEY");
+    if (savedUrl && savedKey) {
+      this.url = savedUrl.trim();
+      this.key = savedKey.trim();
+      this.useBackendProxy = false;
+    }
   }
 
   isConfigured(): boolean {
-    return this.url.length > 0 && this.key.length > 0;
+    return this.useBackendProxy || (this.url.length > 0 && this.key.length > 0);
   }
 
   updateCredentials(url: string, key: string) {
     this.url = url.trim();
     this.key = key.trim();
+    this.useBackendProxy = (this.url.length === 0 || this.key.length === 0);
   }
 
   getCredentials() {
@@ -319,6 +327,20 @@ class SupabaseAdapter {
 
   async select<T>(table: string, queryParams = ""): Promise<T[]> {
     if (!this.isConfigured()) throw new Error("Supabase is not configured.");
+    
+    if (this.useBackendProxy) {
+      const response = await fetch("/api/db/select", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ table, queryParams })
+      });
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Supabase proxy GET error on ${table}: ${errorText}`);
+      }
+      return response.json();
+    }
+
     const response = await fetch(`${this.url}/rest/v1/${table}?${queryParams}`, {
       method: "GET",
       headers: this.getHeaders()
@@ -331,6 +353,20 @@ class SupabaseAdapter {
 
   async insert<T>(table: string, data: T[]): Promise<any> {
     if (!this.isConfigured()) throw new Error("Supabase is not configured.");
+
+    if (this.useBackendProxy) {
+      const response = await fetch("/api/db/insert", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ table, data })
+      });
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Supabase proxy POST error on ${table}: ${errorText}`);
+      }
+      return response.json();
+    }
+
     const response = await fetch(`${this.url}/rest/v1/${table}`, {
       method: "POST",
       headers: this.getHeaders(),
@@ -344,8 +380,22 @@ class SupabaseAdapter {
   }
 
   async truncate(table: string): Promise<any> {
-    // PostgREST doesn't support TRUNCATE, so delete all rows (where id is not null or matching empty criteria)
     if (!this.isConfigured()) throw new Error("Supabase is not configured.");
+
+    if (this.useBackendProxy) {
+      const response = await fetch("/api/db/truncate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ table })
+      });
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Supabase proxy DELETE error on ${table}: ${errorText}`);
+      }
+      return response.text();
+    }
+
+    // PostgREST doesn't support TRUNCATE, so delete all rows (where id is not null or matching empty criteria)
     const response = await fetch(`${this.url}/rest/v1/${table}?id=neq.NULL`, {
       method: "DELETE",
       headers: this.getHeaders()
@@ -358,15 +408,6 @@ class SupabaseAdapter {
 }
 
 export const supabaseAdapter = new SupabaseAdapter();
-
-// Auto-configure from Vite environment variables if present
-{
-  const envUrl = (import.meta.env.VITE_SUPABASE_URL || "").trim();
-  const envKey = (import.meta.env.VITE_SUPABASE_ANON_KEY || "").trim();
-  if (envUrl && envKey) {
-    supabaseAdapter.updateCredentials(envUrl, envKey);
-  }
-}
 
 
 // -----------------------------------------------------------------------------

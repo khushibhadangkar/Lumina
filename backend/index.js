@@ -1,0 +1,277 @@
+import express from 'express';
+import cors from 'cors';
+import dotenv from 'dotenv';
+
+dotenv.config();
+
+const app = express();
+app.use(cors());
+app.use(express.json());
+
+const GEMINI_API_KEY = (process.env.GEMINI_API_KEY || "").trim();
+const SUPABASE_URL = (process.env.SUPABASE_URL || "").trim();
+const SUPABASE_ANON_KEY = (process.env.SUPABASE_ANON_KEY || "").trim();
+const SUPABASE_SERVICE_ROLE_KEY = (process.env.SUPABASE_SERVICE_ROLE_KEY || "").trim() || SUPABASE_ANON_KEY;
+
+const PORT = process.env.PORT || 5001;
+
+function buildPrompt(ctx) {
+  const insightBlock =
+    ctx.insights && ctx.insights.length > 0
+      ? ctx.insights.map((i) => `• ${i}`).join("\n")
+      : "• No specific insights on record.";
+
+  const tradeBlock =
+    ctx.tradePartners && ctx.tradePartners.length > 0
+      ? ctx.tradePartners.slice(0, 4).join("; ")
+      : "No major trade corridors recorded.";
+
+  return `You are Lumina Intelligence, an geopolitical and trade analyst. 
+Write a concise 3-paragraph intelligence brief for the following country × commodity pair.
+Ground every claim strictly in the data provided. Do not invent statistics. Use a confident, analytical tone — like a Bloomberg or Palantir analyst report. Use no markdown headers or bullet points in the output, only clean prose paragraphs.
+
+COUNTRY: ${ctx.countryName} (${ctx.countryId}) — ${ctx.region}
+COMMODITY / SECTOR: ${ctx.topic}
+
+LUMINA SCORED DATA:
+- Production Score: ${ctx.productionScore}
+- Demand Score: ${ctx.demandScore}
+- Growth Score (% CAGR): ${ctx.growthScore}
+- Export Score (USD M / units): ${ctx.exportScore}
+- Import Score (USD M / units): ${ctx.importScore}
+- Opportunity Score: ${ctx.opportunityScore} / 100
+
+DATABASE SUMMARY:
+${ctx.summary}
+
+KEY INTELLIGENCE INSIGHTS:
+${insightBlock}
+
+TRADE CORRIDORS:
+${tradeBlock}
+
+Write exactly 3 paragraphs:
+1. Current position — what role does this country play in the global ${ctx.topic} supply chain or market right now?
+2. Growth trajectory — what does the data reveal about where this country is heading in the next 3–5 years?
+3. Strategic opportunity — what should an investor, policy maker, or supply chain director watch for based on this data?
+
+Keep the brief under 280 words total. End with a one-sentence "Intelligence Signal" starting with "▸".`;
+}
+
+function buildStoryPrompt(query, contextPayload) {
+  return `You are Lumina Storyteller, an expert geopolitical analyst and narrative designer.
+Create a compelling, cinematic 5-scene documentary-style story (CinematicJourney) about the global market for the topic: "${query}".
+Ground the story in this local database context if available:
+${JSON.stringify(contextPayload)}
+
+Guidelines:
+1. Generate exactly 5 scenes representing a logical progression:
+   - Scene 1: Global overview / introduction (e.g. market size, broad trade routes, historical or current baseline).
+   - Scene 2: Major production/supply anchor (e.g., focus on a country with high production, like Brazil or Vietnam for Coffee, or Chile/Australia for Lithium).
+   - Scene 3: Major consumption/demand hub (e.g., USA, Germany or other major consumers).
+   - Scene 4: Chokepoint, vulnerability, or structural interdependency (e.g. split globe mode, shipping lane issues, climate impact, labor shifts).
+   - Scene 5: Future outlook / emerging frontiers (e.g. year 2076 projection, new tech, sustainability opportunity).
+2. For each scene, specify:
+   - title: Short, evocative chapter title (e.g. '01 // The Seed of Trade', '02 // The Highland Harvester').
+   - narrative: A beautiful, informative, Bloomberg/Netflix-documentary style subtitle paragraph (2-3 sentences, 40-60 words). Make it engaging and storytelling-focused!
+   - lat & lon: Latitude and longitude of the focused region (e.g., Brazil is lat -14.235, lon -51.925. Vietnam is lat 14.058, lon 108.277. US is lat 37.09, lon -95.71). Use actual, correct coordinates!
+   - zoom: Camera zoom multiplier (usually between 4.0 for close country focus, 6.0 for medium region, 8.5 for wide planet view).
+   - globeMode: Must be one of: 'network', 'split', 'compare', 'future', or '' (standard).
+   - heatmapMode: Must be one of: 'production', 'demand', 'growth', 'exports', 'imports', 'opportunity'.
+   - timelineVal: Progress year value from 0 (corresponding to 2026) to 50 (corresponding to 2076).
+   - highlightedHotspotId: The ID of a hotspot from the database payload that represents this region (e.g. 'coffee-br', 'coffee-us'). Must match one of the hotspot IDs exactly, or be null if no specific hotspot is highlighted.
+
+Output a single valid JSON object matching the requested schema.`;
+}
+
+const getHeaders = (useServiceRole = false) => {
+  const key = useServiceRole ? SUPABASE_SERVICE_ROLE_KEY : SUPABASE_ANON_KEY;
+  return {
+    "apikey": key,
+    "Authorization": `Bearer ${key}`,
+    "Content-Type": "application/json",
+    "Prefer": "return=representation"
+  };
+};
+
+// GEMINI PROXY ENDPOINTS
+
+app.post('/api/gemini/brief', async (req, res) => {
+  if (!GEMINI_API_KEY) {
+    return res.status(500).send("Gemini API key is not configured on the backend.");
+  }
+  
+  const ctx = req.body;
+  const prompt = buildPrompt(ctx);
+  const body = {
+    contents: [{ role: "user", parts: [{ text: prompt }] }],
+    generationConfig: {
+      temperature: 0.7,
+      maxOutputTokens: 512,
+      topP: 0.9,
+    },
+  };
+  
+  try {
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:streamGenerateContent?key=${GEMINI_API_KEY}&alt=sse`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      }
+    );
+    
+    if (!response.ok) {
+      const errText = await response.text();
+      return res.status(response.status).send(errText);
+    }
+    
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    
+    const reader = response.body.getReader();
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      res.write(value);
+    }
+    res.end();
+  } catch (err) {
+    console.error(err);
+    if (!res.headersSent) {
+      res.status(500).send(err.message);
+    }
+  }
+});
+
+app.post('/api/gemini/story', async (req, res) => {
+  if (!GEMINI_API_KEY) {
+    return res.status(500).json({ error: "Gemini API key is not configured on the backend." });
+  }
+  
+  const { query, contextPayload } = req.body;
+  const prompt = buildStoryPrompt(query, contextPayload);
+  const body = {
+    contents: [{ role: "user", parts: [{ text: prompt }] }],
+    generationConfig: {
+      temperature: 0.75,
+      responseMimeType: "application/json",
+      responseSchema: {
+        type: "OBJECT",
+        properties: {
+          query: { type: "STRING" },
+          name: { type: "STRING" },
+          scenes: {
+            type: "ARRAY",
+            items: {
+              type: "OBJECT",
+              properties: {
+                title: { type: "STRING" },
+                narrative: { type: "STRING" },
+                lat: { type: "NUMBER" },
+                lon: { type: "NUMBER" },
+                zoom: { type: "NUMBER" },
+                globeMode: { type: "STRING" },
+                heatmapMode: { type: "STRING" },
+                timelineVal: { type: "INTEGER" },
+                highlightedHotspotId: { type: "STRING", nullable: true }
+              },
+              required: ["title", "narrative", "lat", "lon", "zoom", "globeMode", "heatmapMode", "timelineVal"]
+            }
+          }
+        },
+        required: ["query", "name", "scenes"]
+      }
+    }
+  };
+  
+  try {
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      }
+    );
+    
+    if (!response.ok) {
+      const errText = await response.text();
+      return res.status(response.status).json({ error: errText });
+    }
+    
+    const result = await response.json();
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// SUPABASE DATABASE PROXY ENDPOINTS
+
+app.post('/api/db/select', async (req, res) => {
+  const { table, queryParams } = req.body;
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+    return res.status(500).json({ error: "Supabase is not configured on the backend." });
+  }
+  try {
+    const url = `${SUPABASE_URL}/rest/v1/${table}${queryParams ? `?${queryParams}` : ''}`;
+    const response = await fetch(url, {
+      method: "GET",
+      headers: getHeaders(false)
+    });
+    if (!response.ok) {
+      return res.status(response.status).send(await response.text());
+    }
+    const data = await response.json();
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/db/insert', async (req, res) => {
+  const { table, data } = req.body;
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+    return res.status(500).json({ error: "Supabase is not configured on the backend." });
+  }
+  try {
+    const response = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, {
+      method: "POST",
+      headers: getHeaders(true),
+      body: JSON.stringify(data)
+    });
+    if (!response.ok) {
+      return res.status(response.status).send(await response.text());
+    }
+    const resData = await response.json();
+    res.json(resData);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/db/truncate', async (req, res) => {
+  const { table } = req.body;
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+    return res.status(500).json({ error: "Supabase is not configured on the backend." });
+  }
+  try {
+    const response = await fetch(`${SUPABASE_URL}/rest/v1/${table}?id=neq.NULL`, {
+      method: "DELETE",
+      headers: getHeaders(true)
+    });
+    if (!response.ok) {
+      return res.status(response.status).send(await response.text());
+    }
+    res.send(await response.text());
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.listen(PORT, () => {
+  console.log(`[Lumina Server] Running secure proxy on port ${PORT}`);
+});
