@@ -4,16 +4,37 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
+// Environment Variable Validation
+const requiredEnv = [
+  'GEMINI_API_KEY',
+  'SUPABASE_URL',
+  'SUPABASE_ANON_KEY',
+  'SUPABASE_SERVICE_ROLE_KEY'
+];
+
+const missing = [];
+for (const envVar of requiredEnv) {
+  if (!process.env[envVar] || process.env[envVar].trim() === "") {
+    missing.push(envVar);
+  }
+}
+
+if (missing.length > 0) {
+  console.error(`\x1b[31m[Lumina Startup Error] Missing required environment variables: ${missing.join(', ')}\x1b[0m`);
+  console.error(`Please check your .env file in the project root and ensure these are defined.`);
+  process.exit(1);
+}
+
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY.trim();
+const SUPABASE_URL = process.env.SUPABASE_URL.trim();
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY.trim();
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY.trim();
+
+const PORT = process.env.PORT || 5001;
+
 const app = express();
 app.use(cors());
 app.use(express.json());
-
-const GEMINI_API_KEY = (process.env.GEMINI_API_KEY || "").trim();
-const SUPABASE_URL = (process.env.SUPABASE_URL || "").trim();
-const SUPABASE_ANON_KEY = (process.env.SUPABASE_ANON_KEY || "").trim();
-const SUPABASE_SERVICE_ROLE_KEY = (process.env.SUPABASE_SERVICE_ROLE_KEY || "").trim() || SUPABASE_ANON_KEY;
-
-const PORT = process.env.PORT || 5001;
 
 function buildPrompt(ctx) {
   const insightBlock =
@@ -84,14 +105,20 @@ Guidelines:
 Output a single valid JSON object matching the requested schema.`;
 }
 
-const getHeaders = (useServiceRole = false) => {
-  const key = useServiceRole ? SUPABASE_SERVICE_ROLE_KEY : SUPABASE_ANON_KEY;
+const getHeaders = (req, useServiceRole = false) => {
+  const customKey = req.headers['x-supabase-key'];
+  const defaultKey = useServiceRole ? SUPABASE_SERVICE_ROLE_KEY : SUPABASE_ANON_KEY;
+  const key = customKey || defaultKey;
   return {
     "apikey": key,
     "Authorization": `Bearer ${key}`,
     "Content-Type": "application/json",
     "Prefer": "return=representation"
   };
+};
+
+const getSupabaseUrl = (req) => {
+  return req.headers['x-supabase-url'] || SUPABASE_URL;
 };
 
 // GEMINI PROXY ENDPOINTS
@@ -213,14 +240,15 @@ app.post('/api/gemini/story', async (req, res) => {
 
 app.post('/api/db/select', async (req, res) => {
   const { table, queryParams } = req.body;
-  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-    return res.status(500).json({ error: "Supabase is not configured on the backend." });
+  const targetUrl = getSupabaseUrl(req);
+  if (!targetUrl) {
+    return res.status(500).json({ error: "Supabase is not configured." });
   }
   try {
-    const url = `${SUPABASE_URL}/rest/v1/${table}${queryParams ? `?${queryParams}` : ''}`;
+    const url = `${targetUrl}/rest/v1/${table}${queryParams ? `?${queryParams}` : ''}`;
     const response = await fetch(url, {
       method: "GET",
-      headers: getHeaders(false)
+      headers: getHeaders(req, false)
     });
     if (!response.ok) {
       return res.status(response.status).send(await response.text());
@@ -234,13 +262,14 @@ app.post('/api/db/select', async (req, res) => {
 
 app.post('/api/db/insert', async (req, res) => {
   const { table, data } = req.body;
-  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-    return res.status(500).json({ error: "Supabase is not configured on the backend." });
+  const targetUrl = getSupabaseUrl(req);
+  if (!targetUrl) {
+    return res.status(500).json({ error: "Supabase is not configured." });
   }
   try {
-    const response = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, {
+    const response = await fetch(`${targetUrl}/rest/v1/${table}`, {
       method: "POST",
-      headers: getHeaders(true),
+      headers: getHeaders(req, true),
       body: JSON.stringify(data)
     });
     if (!response.ok) {
@@ -255,13 +284,14 @@ app.post('/api/db/insert', async (req, res) => {
 
 app.post('/api/db/truncate', async (req, res) => {
   const { table } = req.body;
-  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-    return res.status(500).json({ error: "Supabase is not configured on the backend." });
+  const targetUrl = getSupabaseUrl(req);
+  if (!targetUrl) {
+    return res.status(500).json({ error: "Supabase is not configured." });
   }
   try {
-    const response = await fetch(`${SUPABASE_URL}/rest/v1/${table}?id=neq.NULL`, {
+    const response = await fetch(`${targetUrl}/rest/v1/${table}?id=neq.NULL`, {
       method: "DELETE",
-      headers: getHeaders(true)
+      headers: getHeaders(req, true)
     });
     if (!response.ok) {
       return res.status(response.status).send(await response.text());

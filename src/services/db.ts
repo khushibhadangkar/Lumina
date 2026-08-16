@@ -289,7 +289,6 @@ const SEED_RELATED: RelatedTopic[] = [
 class SupabaseAdapter {
   private url: string = "";
   private key: string = "";
-  private useBackendProxy: boolean = true;
 
   constructor() {
     // Check localStorage for runtime user overrides
@@ -298,110 +297,68 @@ class SupabaseAdapter {
     if (savedUrl && savedKey) {
       this.url = savedUrl.trim();
       this.key = savedKey.trim();
-      this.useBackendProxy = false;
     }
   }
 
   isConfigured(): boolean {
-    return this.useBackendProxy || (this.url.length > 0 && this.key.length > 0);
+    return true; // Proxy backend is always available
   }
 
   updateCredentials(url: string, key: string) {
     this.url = url.trim();
     this.key = key.trim();
-    this.useBackendProxy = (this.url.length === 0 || this.key.length === 0);
   }
 
   getCredentials() {
     return { url: this.url, key: this.key };
   }
 
-  private getHeaders() {
-    return {
-      "apikey": this.key,
-      "Authorization": `Bearer ${this.key}`,
-      "Content-Type": "application/json",
-      "Prefer": "return=representation"
+  private getProxyHeaders() {
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json"
     };
+    if (this.url && this.key) {
+      headers["x-supabase-url"] = this.url;
+      headers["x-supabase-key"] = this.key;
+    }
+    return headers;
   }
 
   async select<T>(table: string, queryParams = ""): Promise<T[]> {
-    if (!this.isConfigured()) throw new Error("Supabase is not configured.");
-    
-    if (this.useBackendProxy) {
-      const response = await fetch("/api/db/select", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ table, queryParams })
-      });
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Supabase proxy GET error on ${table}: ${errorText}`);
-      }
-      return response.json();
-    }
-
-    const response = await fetch(`${this.url}/rest/v1/${table}?${queryParams}`, {
-      method: "GET",
-      headers: this.getHeaders()
+    const response = await fetch("/api/db/select", {
+      method: "POST",
+      headers: this.getProxyHeaders(),
+      body: JSON.stringify({ table, queryParams })
     });
     if (!response.ok) {
-      throw new Error(`Supabase GET error on ${table}: ${response.statusText}`);
+      const errorText = await response.text();
+      throw new Error(`Supabase proxy GET error on ${table}: ${errorText}`);
     }
     return response.json();
   }
 
   async insert<T>(table: string, data: T[]): Promise<any> {
-    if (!this.isConfigured()) throw new Error("Supabase is not configured.");
-
-    if (this.useBackendProxy) {
-      const response = await fetch("/api/db/insert", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ table, data })
-      });
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Supabase proxy POST error on ${table}: ${errorText}`);
-      }
-      return response.json();
-    }
-
-    const response = await fetch(`${this.url}/rest/v1/${table}`, {
+    const response = await fetch("/api/db/insert", {
       method: "POST",
-      headers: this.getHeaders(),
-      body: JSON.stringify(data)
+      headers: this.getProxyHeaders(),
+      body: JSON.stringify({ table, data })
     });
     if (!response.ok) {
       const errorText = await response.text();
-      throw new Error(`Supabase POST error on ${table}: ${errorText}`);
+      throw new Error(`Supabase proxy POST error on ${table}: ${errorText}`);
     }
     return response.json();
   }
 
   async truncate(table: string): Promise<any> {
-    if (!this.isConfigured()) throw new Error("Supabase is not configured.");
-
-    if (this.useBackendProxy) {
-      const response = await fetch("/api/db/truncate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ table })
-      });
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Supabase proxy DELETE error on ${table}: ${errorText}`);
-      }
-      return response.text();
-    }
-
-    // PostgREST doesn't support TRUNCATE, so delete all rows (where id is not null or matching empty criteria)
-    const response = await fetch(`${this.url}/rest/v1/${table}?id=neq.NULL`, {
-      method: "DELETE",
-      headers: this.getHeaders()
+    const response = await fetch("/api/db/truncate", {
+      method: "POST",
+      headers: this.getProxyHeaders(),
+      body: JSON.stringify({ table })
     });
     if (!response.ok) {
-      throw new Error(`Supabase DELETE error on ${table}: ${response.statusText}`);
+      const errorText = await response.text();
+      throw new Error(`Supabase proxy DELETE error on ${table}: ${errorText}`);
     }
     return response.text();
   }
