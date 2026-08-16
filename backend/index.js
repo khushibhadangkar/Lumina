@@ -1,6 +1,8 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import helmet from 'helmet';
+import { rateLimit } from 'express-rate-limit';
 
 dotenv.config();
 
@@ -33,8 +35,48 @@ const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY.trim();
 const PORT = process.env.PORT || 5001;
 
 const app = express();
-app.use(cors());
+
+// Secure API with standard HTTP security headers
+app.use(helmet());
+
+// Whitelist origins for secure CORS configuration in production
+const allowedOrigins = [
+  process.env.FRONTEND_URL,
+  'http://localhost:5173',
+  'http://localhost:3000'
+].filter(Boolean);
+
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.indexOf(origin) === -1) {
+      return callback(new Error('The CORS policy for this site does not allow access from the specified Origin.'), false);
+    }
+    return callback(null, true);
+  }
+}));
+
 app.use(express.json({ limit: '20kb' }));
+
+// Rate Limiters to prevent service denial and AI quota depletion
+const generalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 200,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many requests, please try again after 15 minutes." }
+});
+
+const apiAiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many AI generation requests, please try again after 15 minutes." }
+});
+
+app.use('/api/db/', generalLimiter);
+app.use('/api/gemini/', apiAiLimiter);
 
 function buildPrompt(ctx) {
   const insightBlock =
@@ -254,6 +296,42 @@ const sanitizeErrorMessage = (message) => {
     clean = clean.replace(new RegExp(SUPABASE_ANON_KEY.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'g'), '[REDACTED_ANON_KEY]');
   }
   return clean;
+};
+
+const isSafeUrl = (urlStr) => {
+  try {
+    const parsed = new URL(urlStr);
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+      return false;
+    }
+
+    const hostname = parsed.hostname.toLowerCase();
+    if (hostname === 'localhost' || hostname === 'localhost.localdomain' || hostname.endsWith('.local')) {
+      return false;
+    }
+
+    const ipv4Pattern = /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/;
+    if (ipv4Pattern.test(hostname)) {
+      const parts = hostname.split('.').map(Number);
+      if (parts.some(p => isNaN(p) || p < 0 || p > 255)) return false;
+      if (parts[0] === 127 || parts[0] === 0) return false;
+      if (parts[0] === 10) return false;
+      if (parts[0] === 172 && (parts[1] >= 16 && parts[1] <= 31)) return false;
+      if (parts[0] === 192 && parts[1] === 168) return false;
+      if (parts[0] === 169 && parts[1] === 254) return false;
+    }
+
+    if (hostname.startsWith('[') && hostname.endsWith(']')) {
+      const ipv6 = hostname.slice(1, -1).toLowerCase();
+      if (ipv6 === '::1' || ipv6 === '::' || ipv6.startsWith('fe80:') || ipv6.startsWith('fc00:') || ipv6.startsWith('fd00:')) {
+        return false;
+      }
+    }
+
+    return true;
+  } catch (err) {
+    return false;
+  }
 };
 
 const validateQueryParams = (queryParams) => {
@@ -503,6 +581,9 @@ app.post('/api/db/select', async (req, res) => {
   if (!targetUrl) {
     return res.status(500).json({ error: "Supabase is not configured." });
   }
+  if (!isSafeUrl(targetUrl)) {
+    return res.status(400).json({ error: "Access to the specified database URL is prohibited due to security policies." });
+  }
   try {
     const url = `${targetUrl}/rest/v1/${table}${queryParams ? `?${queryParams}` : ''}`;
     const response = await fetch(url, {
@@ -540,6 +621,9 @@ app.post('/api/db/insert', authorizeWrite, async (req, res) => {
   if (!targetUrl) {
     return res.status(500).json({ error: "Supabase is not configured." });
   }
+  if (!isSafeUrl(targetUrl)) {
+    return res.status(400).json({ error: "Access to the specified database URL is prohibited due to security policies." });
+  }
   try {
     const response = await fetch(`${targetUrl}/rest/v1/${table}`, {
       method: "POST",
@@ -567,6 +651,9 @@ app.post('/api/db/truncate', authorizeWrite, async (req, res) => {
   const targetUrl = getSupabaseUrl(req);
   if (!targetUrl) {
     return res.status(500).json({ error: "Supabase is not configured." });
+  }
+  if (!isSafeUrl(targetUrl)) {
+    return res.status(400).json({ error: "Access to the specified database URL is prohibited due to security policies." });
   }
   try {
     const response = await fetch(`${targetUrl}/rest/v1/${table}?id=neq.NULL`, {
