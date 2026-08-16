@@ -121,6 +121,120 @@ const getSupabaseUrl = (req) => {
   return req.headers['x-supabase-url'] || SUPABASE_URL;
 };
 
+// SECURITY & VALIDATION HELPERS
+
+const ALLOWED_TABLES = ['countries', 'topics', 'country_metrics', 'trade_routes', 'country_insights', 'related_topics'];
+
+const validateTable = (table) => {
+  if (!table || typeof table !== 'string') return false;
+  return ALLOWED_TABLES.includes(table.trim());
+};
+
+const validateQueryParams = (queryParams) => {
+  if (queryParams === undefined || queryParams === null) return true;
+  if (typeof queryParams !== 'string') return false;
+  
+  const query = queryParams.trim();
+  if (query === "") return true;
+
+  // Only allow alphanumeric, =, &, ., _, -, %, parenthesis, commas, and operators like eq, neq, gt, lt, etc.
+  const safePattern = /^[a-zA-Z0-9=&\._\-%,()!]*$/;
+  if (!safePattern.test(query)) {
+    return false;
+  }
+
+  // Prevent obvious SQL commands and comment blocks
+  const blacklistedKeywords = ['select', 'insert', 'update', 'delete', 'drop', 'truncate', '--', 'union', '/*', '*/', ';'];
+  const lowerQuery = query.toLowerCase();
+  for (const keyword of blacklistedKeywords) {
+    if (lowerQuery.includes(keyword)) {
+      return false;
+    }
+  }
+
+  return true;
+};
+
+const authorizeWrite = (req, res, next) => {
+  const customUrl = req.headers['x-supabase-url'];
+  const customKey = req.headers['x-supabase-key'];
+
+  // Enforce that updates to the default database require the verified service role key
+  if (!customUrl || customUrl.trim() === SUPABASE_URL) {
+    if (!customKey || customKey.trim() !== SUPABASE_SERVICE_ROLE_KEY) {
+      return res.status(401).json({ 
+        error: "Unauthorized: Database administrative writes (insert/truncate) on the default connection require the Supabase Service Role Key." 
+      });
+    }
+  }
+  next();
+};
+
+const validateBriefContext = (ctx) => {
+  if (!ctx || typeof ctx !== 'object') return 'Payload must be an object.';
+  
+  const strFields = ['countryName', 'countryId', 'topic', 'summary', 'region'];
+  for (const field of strFields) {
+    if (typeof ctx[field] !== 'string') {
+      return `Field '${field}' must be a string.`;
+    }
+  }
+
+  const numFields = ['productionScore', 'demandScore', 'growthScore', 'exportScore', 'importScore', 'opportunityScore'];
+  for (const field of numFields) {
+    if (typeof ctx[field] !== 'number' || isNaN(ctx[field])) {
+      return `Field '${field}' must be a number.`;
+    }
+  }
+
+  if (ctx.insights && !Array.isArray(ctx.insights)) {
+    return "Field 'insights' must be an array of strings.";
+  }
+  if (ctx.tradePartners && !Array.isArray(ctx.tradePartners)) {
+    return "Field 'tradePartners' must be an array of strings.";
+  }
+
+  if (ctx.countryName.length > 100) return "countryName exceeds length limit.";
+  if (ctx.countryId.length > 10) return "countryId exceeds length limit.";
+  if (ctx.topic.length > 100) return "topic exceeds length limit.";
+  if (ctx.region.length > 100) return "region exceeds length limit.";
+  if (ctx.summary.length > 2000) return "summary exceeds length limit.";
+
+  if (ctx.insights) {
+    for (const insight of ctx.insights) {
+      if (typeof insight !== 'string' || insight.length > 300) {
+        return "Invalid insight entry.";
+      }
+    }
+  }
+  if (ctx.tradePartners) {
+    for (const partner of ctx.tradePartners) {
+      if (typeof partner !== 'string' || partner.length > 100) {
+        return "Invalid trade partner entry.";
+      }
+    }
+  }
+
+  return null;
+};
+
+const validateStoryRequest = (reqBody) => {
+  const { query, contextPayload } = reqBody;
+  if (!query || typeof query !== 'string') return "Field 'query' must be a non-empty string.";
+  if (query.length > 100) return "query exceeds length limit.";
+  
+  const safeQueryPattern = /^[a-zA-Z0-9\s\-_]*$/;
+  if (!safeQueryPattern.test(query)) {
+    return "query contains prohibited characters.";
+  }
+
+  if (contextPayload && typeof contextPayload !== 'object') {
+    return "Field 'contextPayload' must be an object or array.";
+  }
+
+  return null;
+};
+
 // GEMINI PROXY ENDPOINTS
 
 app.post('/api/gemini/brief', async (req, res) => {
@@ -129,6 +243,11 @@ app.post('/api/gemini/brief', async (req, res) => {
   }
   
   const ctx = req.body;
+  const validationError = validateBriefContext(ctx);
+  if (validationError) {
+    return res.status(400).json({ error: validationError });
+  }
+
   const prompt = buildPrompt(ctx);
   const body = {
     contents: [{ role: "user", parts: [{ text: prompt }] }],
@@ -178,6 +297,11 @@ app.post('/api/gemini/story', async (req, res) => {
     return res.status(500).json({ error: "Gemini API key is not configured on the backend." });
   }
   
+  const validationError = validateStoryRequest(req.body);
+  if (validationError) {
+    return res.status(400).json({ error: validationError });
+  }
+
   const { query, contextPayload } = req.body;
   const prompt = buildStoryPrompt(query, contextPayload);
   const body = {
@@ -240,6 +364,15 @@ app.post('/api/gemini/story', async (req, res) => {
 
 app.post('/api/db/select', async (req, res) => {
   const { table, queryParams } = req.body;
+  
+  if (!validateTable(table)) {
+    return res.status(400).json({ error: "Invalid or prohibited table name query." });
+  }
+
+  if (!validateQueryParams(queryParams)) {
+    return res.status(400).json({ error: "Invalid or prohibited query parameters detected." });
+  }
+
   const targetUrl = getSupabaseUrl(req);
   if (!targetUrl) {
     return res.status(500).json({ error: "Supabase is not configured." });
@@ -260,8 +393,17 @@ app.post('/api/db/select', async (req, res) => {
   }
 });
 
-app.post('/api/db/insert', async (req, res) => {
+app.post('/api/db/insert', authorizeWrite, async (req, res) => {
   const { table, data } = req.body;
+
+  if (!validateTable(table)) {
+    return res.status(400).json({ error: "Invalid or prohibited table name query." });
+  }
+
+  if (!data || !Array.isArray(data)) {
+    return res.status(400).json({ error: "Invalid payload: 'data' must be an array of records." });
+  }
+
   const targetUrl = getSupabaseUrl(req);
   if (!targetUrl) {
     return res.status(500).json({ error: "Supabase is not configured." });
@@ -282,8 +424,13 @@ app.post('/api/db/insert', async (req, res) => {
   }
 });
 
-app.post('/api/db/truncate', async (req, res) => {
+app.post('/api/db/truncate', authorizeWrite, async (req, res) => {
   const { table } = req.body;
+
+  if (!validateTable(table)) {
+    return res.status(400).json({ error: "Invalid or prohibited table name query." });
+  }
+
   const targetUrl = getSupabaseUrl(req);
   if (!targetUrl) {
     return res.status(500).json({ error: "Supabase is not configured." });
