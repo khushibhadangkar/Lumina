@@ -19,12 +19,21 @@ export const dbService = {
     }
     
     const url = `${supabaseUrl}/rest/v1/${table}${queryParams ? `?${queryParams}` : ''}`;
-    const res = await fetch(url, { headers: getHeaders() });
-    
-    if (!res.ok) {
-      throw new Error(`DB Select Error on table '${table}': ${await res.text()}`);
+    try {
+      const res = await fetch(url, { headers: getHeaders() });
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status} ${res.statusText}: ${await res.text()}`);
+      }
+      return await res.json();
+    } catch (err) {
+      let diagnosticMsg = `Supabase request failed querying table '${table}'.`;
+      if (err.cause) {
+        diagnosticMsg += ` Cause: ${err.cause.message || err.cause}`;
+      } else {
+        diagnosticMsg += ` Message: ${err.message}`;
+      }
+      throw new Error(diagnosticMsg);
     }
-    return res.json();
   },
   
   async upsert(table, data) {
@@ -34,18 +43,28 @@ export const dbService = {
     }
 
     const url = `${supabaseUrl}/rest/v1/${table}`;
-    const res = await fetch(url, {
-      method: "POST",
-      headers: {
-        ...getHeaders(),
-        "Prefer": "resolution=merge-duplicates" // PostgREST upsert merge conflict resolution
-      },
-      body: JSON.stringify(data)
-    });
-    
-    if (!res.ok) {
-      throw new Error(`DB Upsert Error on table '${table}': ${await res.text()}`);
+    try {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: {
+          ...getHeaders(),
+          "Prefer": "resolution=merge-duplicates"
+        },
+        body: JSON.stringify(data)
+      });
+      
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status} ${res.statusText}: ${await res.text()}`);
+      }
+      return await res.text();
+    } catch (err) {
+      let diagnosticMsg = `Supabase request failed writing to table '${table}'.`;
+      if (err.cause) {
+        diagnosticMsg += ` Cause: ${err.cause.message || err.cause}`;
+      } else {
+        diagnosticMsg += ` Message: ${err.message}`;
+      }
+      throw new Error(diagnosticMsg);
     }
-    return res.text();
   }
 };
