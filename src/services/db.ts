@@ -734,6 +734,12 @@ export class DatabaseService {
     topicSlug?: string
   ): Promise<{ success: boolean; logs: string[] }> {
     const logs: string[] = [];
+    
+    // Size limit check (1MB)
+    if (csvText.length > 1024 * 1024) {
+      return { success: false, logs: ["Error: CSV content exceeds 1MB limit."] };
+    }
+
     const lines = this.parseCSVLines(csvText);
     
     if (lines.length === 0) {
@@ -742,6 +748,14 @@ export class DatabaseService {
 
     const header = lines[0].map(h => h.toLowerCase().trim());
     
+    // Helper sanitization and checking
+    const sanitizeText = (text: string) => (text || "").replace(/<[^>]*>?/gm, '').trim();
+    const isSafeString = (text: string) => !text.includes("../") && !text.includes("..\\");
+    const isValidSlug = (text: string) => /^[a-z0-9\-]{2,50}$/.test(text);
+    const isValidId = (text: string) => /^[a-zA-Z0-9\-]{2,100}$/.test(text);
+    const isValidCountryId = (text: string) => /^[A-Z]{2}$/.test(text);
+    const isValidIsoCode = (text: string) => !text || /^[A-Z]{3}$/.test(text);
+
     // CASE A: Standard Relational Table Ingestion (if header starts with 'table')
     if (header[0] === "table") {
       logs.push("Detected multi-table structural CSV ingestion...");
@@ -766,80 +780,172 @@ export class DatabaseService {
           }
 
           if (tableName === "countries") {
-            const country: Country = {
-              id: row[1]?.trim().toUpperCase(),
-              name: row[2]?.trim(),
-              iso_code: row[3]?.trim().toUpperCase(),
-              latitude: parseFloat(row[4] || "0"),
-              longitude: parseFloat(row[5] || "0"),
-              region: row[6]?.trim()
-            };
-            if (country.id) writeQueues.countries.push(country);
+            const id = row[1]?.trim().toUpperCase();
+            const name = sanitizeText(row[2]);
+            const iso_code = row[3]?.trim().toUpperCase();
+            const latVal = parseFloat(row[4] || "0");
+            const lonVal = parseFloat(row[5] || "0");
+            const region = sanitizeText(row[6]);
+
+            if (!isValidCountryId(id)) {
+              logs.push(`Line ${i}: Skipping invalid Country ID '${id}' (must be 2 letters).`);
+              continue;
+            }
+            if (!isValidIsoCode(iso_code)) {
+              logs.push(`Line ${i}: Skipping invalid ISO Code '${iso_code}' (must be 3 letters).`);
+              continue;
+            }
+            if (isNaN(latVal) || latVal < -90 || latVal > 90) {
+              logs.push(`Line ${i}: Skipping invalid Latitude '${row[4]}' (must be -90 to 90).`);
+              continue;
+            }
+            if (isNaN(lonVal) || lonVal < -180 || lonVal > 180) {
+              logs.push(`Line ${i}: Skipping invalid Longitude '${row[5]}' (must be -180 to 180).`);
+              continue;
+            }
+            if (!isSafeString(name) || !isSafeString(region)) {
+              logs.push(`Line ${i}: Skipping unsafe strings containing path traversal characters.`);
+              continue;
+            }
+
+            const country: Country = { id, name, iso_code, latitude: latVal, longitude: lonVal, region };
+            writeQueues.countries.push(country);
           } 
           else if (tableName === "topics") {
-            const topic: Topic = {
-              id: row[1]?.trim().toLowerCase(),
-              title: row[2]?.trim(),
-              market_size: row[3]?.trim() || "N/A",
-              growth_rate: row[4]?.trim() || "N/A",
-              trade_volume: row[5]?.trim() || "N/A",
-              source: row[6]?.trim() || "Uploaded"
-            };
-            if (topic.id) writeQueues.topics.push(topic);
+            const id = row[1]?.trim().toLowerCase();
+            const title = sanitizeText(row[2]);
+            const market_size = sanitizeText(row[3]) || "N/A";
+            const growth_rate = sanitizeText(row[4]) || "N/A";
+            const trade_volume = sanitizeText(row[5]) || "N/A";
+            const source = sanitizeText(row[6]) || "Uploaded";
+
+            if (!isValidSlug(id)) {
+              logs.push(`Line ${i}: Skipping invalid Topic ID '${id}' (must be safe alphanumeric slug).`);
+              continue;
+            }
+            if (!isSafeString(title) || !isSafeString(market_size) || !isSafeString(growth_rate) || !isSafeString(trade_volume) || !isSafeString(source)) {
+              logs.push(`Line ${i}: Skipping unsafe strings containing path traversal characters.`);
+              continue;
+            }
+
+            const topic: Topic = { id, title, market_size, growth_rate, trade_volume, source };
+            writeQueues.topics.push(topic);
           } 
           else if (tableName === "country_metrics") {
-            const metric: CountryMetric = {
-              country_id: row[1]?.trim().toUpperCase(),
-              topic_id: row[2]?.trim().toLowerCase(),
-              production_score: parseFloat(row[3] || "0"),
-              demand_score: parseFloat(row[4] || "0"),
-              growth_score: parseFloat(row[5] || "0"),
-              import_score: parseFloat(row[6] || "0"),
-              export_score: parseFloat(row[7] || "0"),
-              opportunity_score: parseFloat(row[8] || "0"),
-              summary: row[9]?.trim() || ""
-            };
-            if (metric.country_id && metric.topic_id) {
-              writeQueues.country_metrics.push({
-                ...metric,
-                id: `${metric.country_id}-${metric.topic_id}`
-              });
+            const country_id = row[1]?.trim().toUpperCase();
+            const topic_id = row[2]?.trim().toLowerCase();
+            const prod = parseFloat(row[3] || "0");
+            const dem = parseFloat(row[4] || "0");
+            const grow = parseFloat(row[5] || "0");
+            const imp = parseFloat(row[6] || "0");
+            const exp = parseFloat(row[7] || "0");
+            const opp = parseFloat(row[8] || "0");
+            const summary = sanitizeText(row[9]);
+
+            if (!isValidCountryId(country_id)) {
+              logs.push(`Line ${i}: Skipping invalid Country ID '${country_id}'.`);
+              continue;
             }
+            if (!isValidSlug(topic_id)) {
+              logs.push(`Line ${i}: Skipping invalid Topic ID '${topic_id}'.`);
+              continue;
+            }
+            if (isNaN(prod) || isNaN(dem) || isNaN(grow) || isNaN(imp) || isNaN(exp) || isNaN(opp)) {
+              logs.push(`Line ${i}: Skipping line with invalid numeric score values.`);
+              continue;
+            }
+            if (opp < 0 || opp > 100) {
+              logs.push(`Line ${i}: Skipping line with invalid Opportunity score '${opp}' (must be 0 to 100).`);
+              continue;
+            }
+            if (!isSafeString(summary)) {
+              logs.push(`Line ${i}: Skipping summary containing path traversal characters.`);
+              continue;
+            }
+
+            const metric: CountryMetric = {
+              country_id,
+              topic_id,
+              production_score: prod,
+              demand_score: dem,
+              growth_score: grow,
+              import_score: imp,
+              export_score: exp,
+              opportunity_score: opp,
+              summary
+            };
+            writeQueues.country_metrics.push({
+              ...metric,
+              id: `${country_id}-${topic_id}`
+            });
           }
           else if (tableName === "trade_routes") {
-            const route: TradeRoute = {
-              id: row[1]?.trim() || `route-${Math.random().toString(36).substring(2, 8)}`,
-              source_country: row[2]?.trim().toUpperCase(),
-              destination_country: row[3]?.trim().toUpperCase(),
-              volume: row[4]?.trim() || "N/A",
-              topic_id: row[5]?.trim().toLowerCase()
-            };
-            if (route.source_country && route.destination_country && route.topic_id) {
-              writeQueues.trade_routes.push(route);
+            const id = row[1]?.trim() || `route-${Math.random().toString(36).substring(2, 8)}`;
+            const source_country = row[2]?.trim().toUpperCase();
+            const destination_country = row[3]?.trim().toUpperCase();
+            const volume = sanitizeText(row[4]) || "N/A";
+            const topic_id = row[5]?.trim().toLowerCase();
+
+            if (!isValidId(id)) {
+              logs.push(`Line ${i}: Skipping invalid route ID '${id}'.`);
+              continue;
             }
+            if (!isValidCountryId(source_country) || !isValidCountryId(destination_country)) {
+              logs.push(`Line ${i}: Skipping invalid source or destination country ID.`);
+              continue;
+            }
+            if (!isValidSlug(topic_id)) {
+              logs.push(`Line ${i}: Skipping invalid topic ID.`);
+              continue;
+            }
+            if (!isSafeString(volume)) {
+              logs.push(`Line ${i}: Skipping unsafe volume string.`);
+              continue;
+            }
+
+            const route: TradeRoute = { id, source_country, destination_country, volume, topic_id };
+            writeQueues.trade_routes.push(route);
           }
           else if (tableName === "country_insights") {
-            const insight: CountryInsight = {
-              id: row[1]?.trim() || `insight-${Math.random().toString(36).substring(2, 8)}`,
-              country_id: row[2]?.trim().toUpperCase(),
-              topic_id: row[3]?.trim().toLowerCase(),
-              insight: row[4]?.trim()
-            };
-            if (insight.country_id && insight.topic_id && insight.insight) {
-              writeQueues.country_insights.push(insight);
+            const id = row[1]?.trim() || `insight-${Math.random().toString(36).substring(2, 8)}`;
+            const country_id = row[2]?.trim().toUpperCase();
+            const topic_id = row[3]?.trim().toLowerCase();
+            const insight = sanitizeText(row[4]);
+
+            if (!isValidId(id)) {
+              logs.push(`Line ${i}: Skipping invalid insight ID.`);
+              continue;
             }
+            if (!isValidCountryId(country_id)) {
+              logs.push(`Line ${i}: Skipping invalid country ID.`);
+              continue;
+            }
+            if (!isValidSlug(topic_id)) {
+              logs.push(`Line ${i}: Skipping invalid topic ID.`);
+              continue;
+            }
+            if (!isSafeString(insight)) {
+              logs.push(`Line ${i}: Skipping unsafe insight text.`);
+              continue;
+            }
+
+            const insightObj: CountryInsight = { id, country_id, topic_id, insight };
+            writeQueues.country_insights.push(insightObj);
           }
           else if (tableName === "related_topics") {
-            const related: RelatedTopic = {
-              topic_id: row[1]?.trim().toLowerCase(),
-              related_topic_id: row[2]?.trim().toLowerCase()
-            };
-            if (related.topic_id && related.related_topic_id) {
-              writeQueues.related_topics.push({
-                ...related,
-                id: `${related.topic_id}-${related.related_topic_id}`
-              });
+            const topic_id = row[1]?.trim().toLowerCase();
+            const related_topic_id = row[2]?.trim().toLowerCase();
+
+            if (!isValidSlug(topic_id) || !isValidSlug(related_topic_id)) {
+              logs.push(`Line ${i}: Skipping invalid related topic IDs.`);
+              continue;
             }
+
+            const related: RelatedTopic = { topic_id, related_topic_id };
+            writeQueues.related_topics.push({
+              ...related,
+              id: `${topic_id}-${related_topic_id}`
+            });
           }
         }
 
@@ -877,10 +983,18 @@ export class DatabaseService {
       }
       
       const slug = topicSlug.toLowerCase().trim();
-      logs.push(`Ingesting metrics for custom topic: '${topicName}' (${slug})...`);
+      const sanitizedTopicName = sanitizeText(topicName);
+
+      if (!isValidSlug(slug)) {
+        return { success: false, logs: ["Error: Topic Slug must be a valid lowercase alphanumeric slug."] };
+      }
+      if (!isSafeString(sanitizedTopicName)) {
+        return { success: false, logs: ["Error: Topic Name contains unsafe path traversal characters."] };
+      }
+
+      logs.push(`Ingesting metrics for custom topic: '${sanitizedTopicName}' (${slug})...`);
 
       try {
-        // Find header indices
         const codeIdx = header.indexOf("country_code");
         const prodIdx = header.indexOf("production");
         const demIdx = header.indexOf("demand");
@@ -897,7 +1011,7 @@ export class DatabaseService {
         // Insert / Update Topic
         const newTopic: Topic = {
           id: slug,
-          title: topicName,
+          title: sanitizedTopicName,
           market_size: "Custom Dataset",
           growth_rate: "N/A",
           trade_volume: "N/A",
@@ -910,21 +1024,42 @@ export class DatabaseService {
           if (row.length === 0 || row.join("").trim() === "") continue;
           
           const countryId = row[codeIdx]?.trim().toUpperCase();
-          if (!countryId || countryId.length !== 2) {
-            logs.push(`Line ${i}: Invalid country code '${countryId}' - skipping`);
+          if (!isValidCountryId(countryId)) {
+            logs.push(`Line ${i}: Invalid country code '${countryId}' (must be 2 letters) - skipping`);
+            continue;
+          }
+
+          const prod = prodIdx !== -1 ? parseFloat(row[prodIdx] || "0") : 0;
+          const dem = demIdx !== -1 ? parseFloat(row[demIdx] || "0") : 0;
+          const grow = growIdx !== -1 ? parseFloat(row[growIdx] || "0") : 0;
+          const exp = expIdx !== -1 ? parseFloat(row[expIdx] || "0") : 0;
+          const imp = impIdx !== -1 ? parseFloat(row[impIdx] || "0") : 0;
+          const opp = oppIdx !== -1 ? parseFloat(row[oppIdx] || "0") : 0;
+          const summary = sumIdx !== -1 ? sanitizeText(row[sumIdx]) : "";
+
+          if (isNaN(prod) || isNaN(dem) || isNaN(grow) || isNaN(exp) || isNaN(imp) || isNaN(opp)) {
+            logs.push(`Line ${i}: Invalid score values - skipping`);
+            continue;
+          }
+          if (opp < 0 || opp > 100) {
+            logs.push(`Line ${i}: Opportunity score '${opp}' out of range (0-100) - skipping`);
+            continue;
+          }
+          if (!isSafeString(summary)) {
+            logs.push(`Line ${i}: Skipping line with summary containing path traversal characters.`);
             continue;
           }
 
           const metric: CountryMetric = {
             country_id: countryId,
             topic_id: slug,
-            production_score: prodIdx !== -1 ? parseFloat(row[prodIdx] || "0") : 0,
-            demand_score: demIdx !== -1 ? parseFloat(row[demIdx] || "0") : 0,
-            growth_score: growIdx !== -1 ? parseFloat(row[growIdx] || "0") : 0,
-            export_score: expIdx !== -1 ? parseFloat(row[expIdx] || "0") : 0,
-            import_score: impIdx !== -1 ? parseFloat(row[impIdx] || "0") : 0,
-            opportunity_score: oppIdx !== -1 ? parseFloat(row[oppIdx] || "0") : 0,
-            summary: sumIdx !== -1 ? row[sumIdx]?.trim() : ""
+            production_score: prod,
+            demand_score: dem,
+            growth_score: grow,
+            export_score: exp,
+            import_score: imp,
+            opportunity_score: opp,
+            summary
           };
           metricsToInsert.push(metric);
         }
@@ -941,7 +1076,7 @@ export class DatabaseService {
           logs.push(`Saved topic and ${metricsToInsert.length} metrics to local IndexedDB`);
         }
 
-        logs.push(`✦ Successfully created and populated topic '${topicName}'!`);
+        logs.push(`✦ Successfully created and populated topic '${sanitizedTopicName}'!`);
         return { success: true, logs };
 
       } catch (err: any) {

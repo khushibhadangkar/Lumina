@@ -130,6 +130,102 @@ const validateTable = (table) => {
   return ALLOWED_TABLES.includes(table.trim());
 };
 
+// DATABASE TABLE SCHEMAS ENFORCEMENT
+
+const isSafeText = (text) => {
+  if (text === undefined || text === null) return true;
+  if (typeof text !== 'string') return false;
+  return !text.includes("../") && !text.includes("..\\");
+};
+
+const isValidSlug = (text) => {
+  if (typeof text !== 'string') return false;
+  return /^[a-z0-9\-]{2,50}$/.test(text);
+};
+
+const isValidId = (text) => {
+  if (typeof text !== 'string') return false;
+  return /^[a-zA-Z0-9\-]{2,100}$/.test(text);
+};
+
+const isValidCountryId = (text) => {
+  if (typeof text !== 'string') return false;
+  return /^[A-Z]{2}$/.test(text);
+};
+
+const isValidIsoCode = (text) => {
+  if (!text) return true;
+  if (typeof text !== 'string') return false;
+  return /^[A-Z]{3}$/.test(text);
+};
+
+const schemas = {
+  countries: (row) => {
+    if (!isValidCountryId(row.id)) return "Invalid country id";
+    if (typeof row.name !== 'string' || row.name.length > 100 || !isSafeText(row.name)) return "Invalid country name";
+    if (!isValidIsoCode(row.iso_code)) return "Invalid ISO code";
+    if (typeof row.latitude !== 'number' || isNaN(row.latitude) || row.latitude < -90 || row.latitude > 90) return "Invalid latitude";
+    if (typeof row.longitude !== 'number' || isNaN(row.longitude) || row.longitude < -180 || row.longitude > 180) return "Invalid longitude";
+    if (typeof row.region !== 'string' || row.region.length > 100 || !isSafeText(row.region)) return "Invalid region";
+    return null;
+  },
+  topics: (row) => {
+    if (!isValidSlug(row.id)) return "Invalid topic id";
+    if (typeof row.title !== 'string' || row.title.length > 100 || !isSafeText(row.title)) return "Invalid topic title";
+    if (typeof row.market_size !== 'string' || row.market_size.length > 100 || !isSafeText(row.market_size)) return "Invalid market size";
+    if (typeof row.growth_rate !== 'string' || row.growth_rate.length > 100 || !isSafeText(row.growth_rate)) return "Invalid growth rate";
+    if (typeof row.trade_volume !== 'string' || row.trade_volume.length > 100 || !isSafeText(row.trade_volume)) return "Invalid trade volume";
+    if (typeof row.source !== 'string' || row.source.length > 100 || !isSafeText(row.source)) return "Invalid source";
+    return null;
+  },
+  country_metrics: (row) => {
+    if (!isValidCountryId(row.country_id)) return "Invalid country_id";
+    if (!isValidSlug(row.topic_id)) return "Invalid topic_id";
+    if (typeof row.production_score !== 'number' || isNaN(row.production_score)) return "Invalid production_score";
+    if (typeof row.demand_score !== 'number' || isNaN(row.demand_score)) return "Invalid demand_score";
+    if (typeof row.growth_score !== 'number' || isNaN(row.growth_score)) return "Invalid growth_score";
+    if (typeof row.import_score !== 'number' || isNaN(row.import_score)) return "Invalid import_score";
+    if (typeof row.export_score !== 'number' || isNaN(row.export_score)) return "Invalid export_score";
+    if (typeof row.opportunity_score !== 'number' || isNaN(row.opportunity_score) || row.opportunity_score < 0 || row.opportunity_score > 100) return "Invalid opportunity_score";
+    if (typeof row.summary !== 'string' || row.summary.length > 2000 || !isSafeText(row.summary)) return "Invalid summary";
+    return null;
+  },
+  trade_routes: (row) => {
+    if (!isValidId(row.id)) return "Invalid route id";
+    if (!isValidCountryId(row.source_country)) return "Invalid source_country";
+    if (!isValidCountryId(row.destination_country)) return "Invalid destination_country";
+    if (typeof row.volume !== 'string' || row.volume.length > 100 || !isSafeText(row.volume)) return "Invalid volume";
+    if (!isValidSlug(row.topic_id)) return "Invalid topic_id";
+    return null;
+  },
+  country_insights: (row) => {
+    if (!isValidId(row.id)) return "Invalid insight id";
+    if (!isValidCountryId(row.country_id)) return "Invalid country_id";
+    if (!isValidSlug(row.topic_id)) return "Invalid topic_id";
+    if (typeof row.insight !== 'string' || row.insight.length > 2000 || !isSafeText(row.insight)) return "Invalid insight";
+    return null;
+  },
+  related_topics: (row) => {
+    if (!isValidSlug(row.topic_id)) return "Invalid topic_id";
+    if (!isValidSlug(row.related_topic_id)) return "Invalid related_topic_id";
+    return null;
+  }
+};
+
+const validateTableSchema = (table, data) => {
+  if (!Array.isArray(data)) return "Data must be an array.";
+  const validator = schemas[table];
+  if (!validator) return "Unsupported table validator.";
+
+  for (let i = 0; i < data.length; i++) {
+    const error = validator(data[i]);
+    if (error) {
+      return `Record at index ${i}: ${error}`;
+    }
+  }
+  return null;
+};
+
 const validateQueryParams = (queryParams) => {
   if (queryParams === undefined || queryParams === null) return true;
   if (typeof queryParams !== 'string') return false;
@@ -402,6 +498,11 @@ app.post('/api/db/insert', authorizeWrite, async (req, res) => {
 
   if (!data || !Array.isArray(data)) {
     return res.status(400).json({ error: "Invalid payload: 'data' must be an array of records." });
+  }
+
+  const schemaError = validateTableSchema(table, data);
+  if (schemaError) {
+    return res.status(400).json({ error: `Schema validation error: ${schemaError}` });
   }
 
   const targetUrl = getSupabaseUrl(req);

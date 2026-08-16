@@ -138,6 +138,22 @@ export const DatabaseAdmin: React.FC<DatabaseAdminProps> = ({ onClose, onRefresh
     }
   };
 
+  const validateUploadedFile = (file: File): boolean => {
+    const MAX_SIZE = 1024 * 1024; // 1MB
+    if (file.size > MAX_SIZE) {
+      setLogs(prev => [...prev, `Error: File '${file.name}' is too large (${file.size} bytes). Max limit is 1MB.`]);
+      return false;
+    }
+
+    const extension = file.name.split('.').pop()?.toLowerCase();
+    if (extension !== 'csv') {
+      setLogs(prev => [...prev, `Error: File '${file.name}' is not a CSV file (.csv extension required).`]);
+      return false;
+    }
+
+    return true;
+  };
+
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -145,6 +161,7 @@ export const DatabaseAdmin: React.FC<DatabaseAdminProps> = ({ onClose, onRefresh
 
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       const file = e.dataTransfer.files[0];
+      if (!validateUploadedFile(file)) return;
       const reader = new FileReader();
       reader.onload = (event) => {
         if (event.target) {
@@ -159,6 +176,7 @@ export const DatabaseAdmin: React.FC<DatabaseAdminProps> = ({ onClose, onRefresh
   const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
+      if (!validateUploadedFile(file)) return;
       const reader = new FileReader();
       reader.onload = (event) => {
         if (event.target) {
