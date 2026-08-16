@@ -10,9 +10,26 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
-*.local
+
+# Local environment variables and overrides
 .env
 .env.*
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.local
+
+# Secret keys and key certificates
+*.pem
+*.key
+*.cert
+*.p12
+*.pfx
+
+# OAuth & API service credentials
+credentials.json
+client_secret*.json
 
 # Editor directories and files
 .vscode/*
